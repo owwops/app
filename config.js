@@ -8,7 +8,7 @@ window.OWW_CONFIG = {
   BRANCHES: [],
 
   // OWNER app only: the address of the central Owner script (Owner sheet > Deploy > Web app). Leave '' if there is no Owner app.
-  OWNER_URL: '',
+  OWNER_URL: 'https://script.google.com/macros/s/AKfycbyPDMPq9lMwGvQcUYtiYZwxET9X29LnmkLIhtkYKnnM-PS3hcnKo4Xde2s741zER0VC/exec',
 
   // OPTIONAL: your OneSignal App ID, for phone notifications. Leave '' to keep notifications off.
   PUSH_APP_ID: '8f85a578-2bf7-4877-bb89-2387e708c81f'
