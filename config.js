@@ -11,5 +11,5 @@ window.OWW_CONFIG = {
   OWNER_URL: '',
 
   // OPTIONAL: your OneSignal App ID, for phone notifications. Leave '' to keep notifications off.
-  PUSH_APP_ID: ''
+  PUSH_APP_ID: '8f85a578-2bf7-4877-bb89-2387e708c81f'
 };
