@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="manifest" href="manifest-kitchen.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OWW Kitchen</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="oww.css">
+</head>
+<body>
+<div id="login"></div>
+
+<div id="app" class="hide">
+  <header id="top">
+    <div class="brand"><img src="logo.png" alt=""><div><b>Kitchen</b><small id="sub"></small></div></div>
+    <div style="display:flex;gap:8px;align-items:center"><button class="sm" id="rf" onclick="refresh()" aria-label="Refresh" style="font-size:16px;padding:5px 12px">↻</button>
+      <div class="seg" id="shiftseg"><button data-s="Day">Day</button><button data-s="Night">Night</button></div></div>
+  </header>
+
+  <main id="main">
+    <section class="page on" id="p-dash">
+      <div id="evk"></div>
+      <div id="nxt"></div>
+      <div class="cols">
+        <div>
+          <div class="find"><input id="q" name="oww-find" placeholder="Search prep item…" autocomplete="off" spellcheck="false" data-lpignore="true" data-1p-ignore><div class="pop hide" id="qp"></div></div>
+          <div class="sec">Suggested for this shift</div>
+          <div class="chips" id="sugg"></div>
+          <div class="sec">Done this shift</div>
+          <div class="card"><div class="ch"><span>Fatto</span><span class="tag g" id="dn">0 items</span></div><div id="done"></div></div>
+        </div>
+        <div>
+          <div class="sec">WhatsApp report</div><div class="wa" id="wa"></div>
+          <div class="sec">To do next shift</div>
+          <div class="find"><input id="tq" name="oww-find2" placeholder="Add an item to Da Fare…" autocomplete="off" data-lpignore="true" data-1p-ignore><div class="pop hide" id="tp"></div></div>
+          <div class="card" id="todo"></div>
+          <div class="bar"><button class="btn g" onclick="sendWA()">Copy &amp; open WhatsApp</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="p-alerts">
+      <div class="sec">Flag a low-stock item</div>
+      <div class="note">Search any raw ingredient or consumable and say how much is left. The manager gets it and handles the order.</div>
+      <div class="find"><input id="aq" name="oww-find3" placeholder="Search ingredient or consumable…" autocomplete="off" data-lpignore="true" data-1p-ignore><div class="pop hide" id="ap"></div></div>
+      <div class="sec">Your flags this week</div>
+      <div class="note">A flag closes by itself when the item is refilled.</div>
+      <div id="mine"></div>
+    </section>
+
+    <section class="page" id="p-chk">
+      <div class="sec">Fridge temperatures</div>
+      <div class="note">Record every fridge and freezer at the start and at the end of your shift.</div>
+      <div style="padding:0 16px 12px"><div class="seg" id="pseg"><button class="on" data-p="Start" style="flex:1">Start of shift</button><button data-p="End" style="flex:1">End of shift</button></div></div>
+      <div class="card" id="chk"></div>
+      <div class="bar"><button class="btn p" id="chk-save" onclick="saveTemps()">Save readings</button></div>
+    </section>
+
+    <section class="page" id="p-att">
+      <div id="rotam"></div>
+      <div id="reqs"></div>
+      <div class="stats" id="astats"></div>
+      <div style="padding:0 16px 12px"><div class="seg" id="aseg"><button class="on" data-v="log" style="flex:1">Log shift</button><button data-v="hist" style="flex:1">History</button></div></div>
+      <div id="a-log"><div class="cols"><div class="card" style="padding:14px;display:grid;gap:12px">
+        <label class="fld"><small>Date</small><input type="date" id="ad"></label>
+        <div class="two"><label class="fld"><small>Start time</small><input type="time" id="as"></label><label class="fld"><small>End time</small><input type="time" id="ae"></label></div>
+        <div class="two"><button class="sm" type="button" onclick="nowT('as')">Start = now</button><button class="sm" type="button" onclick="nowT('ae')">End = now</button></div>
+        <div class="dur" id="adur"></div>
+        <label class="fld"><small>Note (optional)</small><input id="am" placeholder="e.g. covered the grill" maxlength="120"></label>
+        <button class="btn p w" id="asave" onclick="saveShift()">Save shift</button></div></div></div>
+      <div id="a-hist" class="hide"><div class="find"><label class="fld"><small>Filter by date</small><input type="date" id="af"></label></div><div id="alist"></div></div>
+    </section>
+
+    <section class="page" id="p-set">
+      <div id="acct"></div>
+      <div class="cols"><div><div class="sec">Shifts</div><div class="card">
+        <div class="row"><span class="grow">Day shift</span><span class="sub">before 15:00</span></div>
+        <div class="row"><span class="grow">Night shift</span><span class="sub">from 15:00</span></div>
+        <div class="row"><button class="btn w" onclick="load(true)">Refresh data from sheet</button></div></div></div></div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button class="nb on" data-p="p-dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Dashboard</button>
+    <button class="nb" data-p="p-att"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Shifts</button>
+    <button class="nb" data-p="p-chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>Checks</button>
+    <button class="nb" data-p="p-alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>Alerts<span class="bdg hide" id="ab"></span></button>
+    <button class="nb" data-p="p-set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</button>
+  </nav>
+</div>
+
+<div id="sheet"><div id="sheetc"></div></div>
+<script src="config.js"></script>
+<script src="oww.js"></script>
+<script src="i18n.js"></script>
+<script>
+const $ = OWW.$, esc = OWW.esc, num = v => parseFloat(String(v).replace(',', '.')) || 0;
+let D = { prep: [], cons: [], patterns: [], log: [], alerts: [] };
+let shift = OWW.shiftNow(), cur = null, dose = 1, loc = '', todo = {};
+const name = p => p['Item Name (IT)'];
+
+document.querySelectorAll('.nb').forEach(b => b.onclick = () => OWW.go(b.dataset.p));
+document.querySelectorAll('#shiftseg button').forEach(b => b.onclick = () => { shift = b.dataset.s; paintShift(); resetTodo(); renderAll(); });
+function paintShift() { document.querySelectorAll('#shiftseg button').forEach(b => b.classList.toggle('on', b.dataset.s === shift)); }
+
+OWW.start({
+  app: 'kitchen', title: 'OWW Kitchen', sub: 'Sign in with your work email', switchTo: { label: 'Open Admin', href: 'inventory.html', roles: ['Director', 'Kitchen Manager'] },
+  allow: ['Staff', 'Kitchen Staff', 'Kitchen Manager', 'Director'], deny: 'This app is for the kitchen team. Sala staff use the Sala app.',
+  ready(u) {
+    $('sub').textContent = new Date().toLocaleDateString(OWW.loc(), { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + u.name;
+    paintShift(); OWW.account('acct'); $('ad').value = OWW.ymd(new Date());
+    try { const c = JSON.parse(localStorage.getItem('oww_kd_' + u.id)); if (c) { D = c; resetTodo(); renderAll(); } const a = JSON.parse(localStorage.getItem(akey())); if (a) { A = a; renderAtt(); } } catch (e) {} // saved data shows instantly
+    load(); loadAtt(); loadX();
+  }
+});
+
+async function load(manual) {
+  try { D = await OWW.api('kitchenData'); localStorage.setItem('oww_kd_' + OWW.user.id, JSON.stringify(D)); if (manual) OWW.toast('Data refreshed'); }
+  catch (e) { OWW.toast(e.message, 'red'); }
+  resetTodo(); renderAll();
+}
+
+// ── suggestions + done ──
+function patKey() { const d = new Date().getDay(); return 'Avg Doses/Shift (' + (d === 0 || d === 6 ? 'Weekend ' : '') + shift + ')'; }
+const doneList = () => D.log.filter(l => l['Shift'] === shift);
+const doneNames = () => [...new Set(doneList().map(l => l['Prep Item Name (IT)']))];
+function suggestions() {
+  return D.patterns.filter(p => num(p[patKey()]) > 0).sort((a, b) => num(b['Total Sessions Logged']) - num(a['Total Sessions Logged']))
+    .map(p => D.prep.find(x => x['Prep ID'] === p['Prep Item ID'])).filter(Boolean).filter(p => !doneNames().includes(name(p))).slice(0, 8);
+}
+function renderPrep() {
+  const s = suggestions();
+  $('sugg').innerHTML = s.length ? s.map(p => `<button class="chip" data-id="${esc(p['Prep ID'])}">${esc(name(p))}</button>`).join('')
+    : '<div class="sub" style="padding:0 2px">Suggestions appear after the team has logged a few shifts. Use the search above meanwhile.</div>';
+  const d = doneList();
+  $('dn').textContent = d.length + (d.length === 1 ? ' item' : ' items');
+  $('done').innerHTML = d.length ? d.map(l => `<div class="row"><span class="tag g">✓</span><span class="grow nm">${esc(l['Prep Item Name (IT)'])}</span>
+      <span class="sub">${esc(l['Doses Prepared'])} dose</span><span class="tag">${esc(l['Source Location'])}</span></div>`).join('')
+    : '<div class="empty">Nothing logged yet this shift</div>';
+}
+$('sugg').onclick = e => { const b = e.target.closest('[data-id]'); if (b) openPrep(b.dataset.id); };
+OWW.finder('q', 'qp', () => D.prep.map(p => ({ k: p['Prep ID'], l: name(p), t: p['Operatore (Shifts/Days)'], s: p['Category'] + ' · ' + p['Dose Base'] })), openPrep);
+
+// ── log prep ──
+function openPrep(id) {
+  cur = D.prep.find(p => p['Prep ID'] === id); if (!cur) return;
+  dose = 1; loc = cur['Storage Location'] || 'Frigo +'; drawQty();
+}
+function drawQty() {
+  OWW.sheet(`<div><div class="nm" style="font-size:18px">${esc(name(cur))}</div><div class="sub">${esc(cur['Dose Base'])}</div><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${cur['Operatore (Shifts/Days)'] ? '<span class="tag a">Shelf life: ' + esc(cur['Operatore (Shifts/Days)']) + '</span>' : ''}${cur['Storage Location'] ? '<span class="tag b">' + esc(cur['Storage Location']) + '</span>' : ''}</div></div>
+    <div style="display:flex;align-items:center;gap:12px"><span class="sub" style="width:60px">Doses</span>
+      <div class="stepper"><button onclick="dose=Math.max(1,dose-1);drawQty()">−</button><b>${dose}</b><button onclick="dose++;drawQty()">+</button></div>
+      <span class="sub">× ${esc(cur['Prep Unit'])}</span></div>
+    <div class="chips" style="padding:0">${['Frigo −', 'Frigo +', 'Scaffale'].map(l => `<button class="chip ${l === loc ? 'on' : ''}" onclick="loc='${l}';drawQty()">${l}</button>`).join('')}</div>
+    <button class="btn p w" onclick="confirmPrep()">Log prep</button><button class="btn w" onclick="showRecipe()">📖 Recipe &amp; allergens</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
+}
+async function confirmPrep() {
+  const p = cur, d = dose, l = loc; OWW.close();
+  D.log.push({ 'Shift': shift, 'Prep Item ID': p['Prep ID'], 'Prep Item Name (IT)': name(p), 'Doses Prepared': d, 'Source Location': l });
+  renderAll();
+  try { if (await OWW.send('logPrep', { prepId: p['Prep ID'], prepName: name(p), doses: d, location: l, shift })) OWW.toast('Logged ✓'); }
+  catch (e) { OWW.toast('Not saved: ' + e.message, 'red'); }
+}
+
+// ── WhatsApp ──
+function resetTodo() { todo = {}; suggestions().forEach(p => todo[name(p)] = true); }
+const todoNames = () => Object.keys(todo).filter(k => todo[k] && !doneNames().includes(k));
+function msgText() {
+  const d = doneNames(), t = todoNames(), list = a => a.length ? a.map((n, i) => `${i + 1}. ${n}`).join('\n') : '—';
+  return '*Fatto*\n\n' + list(d) + '\n\n\n*Da Fare*\n\n' + list(t);
+}
+function renderMsg() {
+  $('wa').textContent = msgText();
+  const keys = Object.keys(todo).filter(k => !doneNames().includes(k));
+  $('todo').innerHTML = keys.length ? keys.map(k => `<div class="row" data-t="${esc(k)}" style="cursor:pointer"><span class="tag ${todo[k] ? 'a' : ''}">${todo[k] ? '✓' : '+'}</span><span class="grow nm">${esc(k)}</span></div>`).join('')
+    : '<div class="empty">Nothing planned. Search above to add items.</div>';
+}
+$('todo').onclick = e => { const r = e.target.closest('[data-t]'); if (r) { todo[r.dataset.t] = !todo[r.dataset.t]; renderMsg(); } };
+OWW.finder('tq', 'tp', () => D.prep.map(p => ({ k: name(p), l: name(p), t: p['Operatore (Shifts/Days)'], s: p['Category'] })), k => { todo[k] = true; renderMsg(); });
+async function sendWA() {
+  const t = msgText(); try { await navigator.clipboard.writeText(t); } catch (e) {}
+  window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+
+// ── alerts ──
+const stockItems = () => [
+  ...(D.raw || []).map(r => ({ id: r.id, name: r.it, m: r.it + ' ' + (r.en || ''), unit: r.unit || '', loc: r.loc || '', life: r.life || '', kind: r.supplier === 'VERDURA' ? 'Verdura' : 'Ingredient' })),
+  ...D.cons.map(c => ({ id: c['Consumable ID'], name: c['Name (IT)'], m: c['Name (IT)'], unit: c['Unit'] || '', loc: c['Storage'] || '', life: c['TMC / Shelf Life'] || '', kind: 'Consumable' }))
+].filter(x => x.id && x.name);
+OWW.finder('aq', 'ap', () => stockItems().map(x => ({ k: x.id, l: x.name, m: x.m, t: [x.life, x.loc], s: x.kind + (x.unit ? ' · ' + x.unit : '') })), id => {
+  const c = stockItems().find(x => x.id === id);
+  OWW.sheet(`<div><div class="nm" style="font-size:18px">${esc(c.name)}</div><div class="sub">${esc(c.kind)}${c.life ? ' · Shelf life: ' + esc(c.life) : ''}${c.loc ? ' · Shelf: ' + esc(c.loc) : ''}</div></div>
+    <input id="fq" placeholder="How much is left? e.g. 2 bottiglie"><input id="fn" placeholder="Note (optional)">
+    <button class="btn p w" onclick="flag('${esc(id)}')">Send alert to manager</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
+});
+async function flag(id) {
+  const c = stockItems().find(x => x.id === id), q = $('fq').value.trim() || 'not specified', n = $('fn').value.trim(); OWW.close();
+  try {
+    const r = await OWW.send('raiseAlert', { itemId: id, itemName: c.name, qty: q, unit: c.unit, shift, note: n });
+    if (r) { OWW.toast(r.duplicate ? 'Already flagged this week' : 'Alert sent ✓'); await load(); }
+  } catch (e) { OWW.toast(e.message, 'red'); }
+}
+function renderAlerts() {
+  const m = D.alerts.filter(a => a['Flagged By'] === OWW.user.full), open = m.filter(a => a['Status'] === 'OPEN' || a['Status'] === 'ORDERED').length;
+  $('ab').textContent = open; $('ab').classList.toggle('hide', !open);
+  const st = { OPEN: ['a', 'Waiting for manager'], ORDERED: ['a', 'Ordered'], REFILLED: ['g', 'Refilled ✓'], DISMISSED: ['', 'Dismissed'], RESET_FRIDAY: ['', 'Closed'] };
+  $('mine').innerHTML = m.length ? '<div class="card">' + m.map(a => { const s = st[a['Status']] || ['', a['Status']];
+    return `<div class="row"><div class="grow"><div class="nm">${esc(a['Item Name'])}</div><div class="sub">${esc(a['Qty Remaining'])} · ${esc(String(a['Date Raised']).slice(0, 10))}${a['Notes'] ? ' · “' + esc(a['Notes']) + '”' : ''}</div></div><span class="tag ${s[0]}">${s[1]}</span></div>`; }).join('') + '</div>'
+    : '<div class="empty">No alerts raised this week</div>';
+}
+
+// ── attendance (log + history): instant, saved in the background ──
+let A = { shifts: [] };
+const akey = () => 'oww_att_' + OWW.user.id;
+OWW.hooks['p-att'] = () => renderAtt();
+async function loadAtt() {
+  try { A = await OWW.api('shiftMine'); localStorage.setItem(akey(), JSON.stringify(A)); } catch (e) { return OWW.toast(e.message, 'red'); }
+  renderAtt();
+}
+document.querySelectorAll('#aseg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#aseg button').forEach(x => x.classList.toggle('on', x === b));
+  $('a-log').classList.toggle('hide', b.dataset.v !== 'log'); $('a-hist').classList.toggle('hide', b.dataset.v !== 'hist');
+});
+const toM = t => parseInt(t) * 60 + parseInt(t.split(':')[1]);
+function durUpdate() {
+  const a = $('as').value, e = $('ae').value; if (!a || !e) { $('adur').textContent = ''; return; }
+  let m = toM(e) - toM(a); const over = m < 0; if (m <= 0) m += 1440;
+  $('adur').innerHTML = m > 420 ? '<span style="color:var(--red)">' + OWW.hrs(m / 60) + ' — longer than 7 hours, it will be blocked</span>' : 'Duration: <b>' + OWW.hrs(m / 60) + '</b>' + (over ? ' (overnight)' : '');
+}
+$('as').oninput = $('ae').oninput = durUpdate; $('af').oninput = () => renderAtt();
+function checkShift(date, st, en) {
+  if (!date || !st || !en) return 'Enter the date, start time and end time';
+  const a = toM(st); let z = toM(en); if (a === z) return 'Start and end time cannot be the same'; if (z < a) z += 1440;
+  if ((z - a) / 60 > 7) return 'Blocked: a shift cannot be longer than 7 hours';
+  if (A.shifts.some(x => { if (x.date !== date) return false; const p = toM(x.start); let q = toM(x.end); if (q < p) q += 1440; return a < q && z > p; }))
+    return 'Overlap: you already logged a shift that conflicts with this time';
+  return '';
+}
+async function saveShift() {
+  const date = $('ad').value, start = $('as').value, end = $('ae').value, memo = $('am').value.trim(), bad = checkShift(date, start, end);
+  if (bad) return OWW.toast(bad, 'red');
+  const d = dev(date, start, end), g = A.grace ?? 5;
+  if (d && (d.late > g || d.early > g)) return reasonSheet(devText(d), r => commitShift(date, start, end, memo, r, d)); // late / early: ask why first
+  commitShift(date, start, end, memo, '', d);
+}
+async function commitShift(date, start, end, memo, reason, d) {
+  let m = toM(end) - toM(start); if (m <= 0) m += 1440;
+  const t = { id: 'tmp' + Date.now(), date, start, end, memo, reason, late: d ? d.late : 0, early: d ? d.early : 0, hours: Math.round(m / 60 * 100) / 100, pending: true };
+  A.shifts.push(t); A.shifts.sort((x, y) => x.date === y.date ? y.start.localeCompare(x.start) : y.date.localeCompare(x.date));
+  $('as').value = $('ae').value = $('am').value = ''; durUpdate(); renderAtt(); OWW.toast('Shift saved ✓'); // shown instantly
+  try { const r = await OWW.send('shiftLog', { date, start, end, memo, reason }); if (r) { t.id = r.id; t.late = r.late; t.early = r.early; delete t.pending; renderAtt(); localStorage.setItem(akey(), JSON.stringify(A)); } }
+  catch (e) {
+    A.shifts = A.shifts.filter(x => x !== t); renderAtt();
+    const q = /^REASON_REQUIRED:(\d+):(\d+)$/.exec(e.message); // the server found a late / early leave that the phone could not see (e.g. a past day)
+    if (q) return reasonSheet(devText({ late: +q[1], early: +q[2] }), r => commitShift(date, start, end, memo, r, d));
+    $('as').value = start; $('ae').value = end; $('am').value = memo; durUpdate(); OWW.toast(e.message, 'red');
+  }
+}
+function stats() {
+  const d = new Date(), mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7), prev = new Date(mon); prev.setDate(mon.getDate() - 7);
+  const w0 = OWW.ymd(mon), p0 = OWW.ymd(prev), m0 = OWW.ymd(d).slice(0, 7), s = { week: 0, last: 0, month: 0 }, days = new Set();
+  A.shifts.forEach(x => { if (x.date >= w0) s.week += x.hours; else if (x.date >= p0) s.last += x.hours; if (x.date.slice(0, 7) === m0) { s.month += x.hours; days.add(x.date); } });
+  s.days = days.size; return s;
+}
+function renderAtt() {
+  renderRota();
+  const s = stats();
+  $('astats').innerHTML = [['This week', OWW.hrs(s.week)], ['Last week', OWW.hrs(s.last)], ['This month', OWW.hrs(s.month)], ['Days this month', s.days], ['Late this month', lateN()]]
+    .map(x => `<div class="stat"><small>${x[0]}</small><b style="font-size:21px">${x[1]}</b></div>`).join('');
+  const f = $('af').value, l = A.shifts.filter(x => !f || x.date === f), g = {};
+  l.forEach(x => (g[x.date] = g[x.date] || []).push(x));
+  $('alist').innerHTML = Object.keys(g).length ? Object.keys(g).map(d => `<div class="sec">${OWW.day(d)}</div><div class="card">` + g[d].map(x =>
+    `<div class="row"><span class="tag b">${OWW.kind(x.start)}</span><div class="grow"><div class="nm">${esc(x.start)} → ${esc(x.end)}</div>${x.memo ? `<div class="sub">${esc(x.memo)}</div>` : ''}</div>${pTags(x)}${stTag(x)}<b>${OWW.hrs(x.hours)}</b></div>`).join('') + '</div>').join('')
+    : '<div class="empty">No shifts logged' + (f ? ' on this date' : ' yet') + '</div>';
+}
+async function refresh() {
+  const b = $('rf'); b.disabled = true; b.textContent = '…';
+  try { await Promise.all([load(), loadAtt(), loadX()]); OWW.toast('Updated'); } finally { b.disabled = false; b.textContent = '↻'; }
+}
+
+function renderAll() { renderPrep(); renderMsg(); renderAlerts(); }
+</script>
+<script src="kitchen-x.js"></script>
+</body>
+</html>

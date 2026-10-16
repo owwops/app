@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="manifest" href="manifest-sala.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OWW Sala</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="oww.css">
+</head>
+<body>
+<div id="login"></div>
+
+<div id="app" class="hide">
+  <header id="top">
+    <div class="brand"><img src="logo.png" alt=""><div><b>Sala</b><small id="sub"></small></div></div>
+    <button class="sm" id="rf" onclick="refresh()" aria-label="Refresh" style="font-size:16px;padding:5px 12px">↻</button>
+  </header>
+
+  <main id="main">
+    <section class="page on" id="p-dash">
+      <div id="evk"></div>
+      <div id="nxt"></div>
+      <div id="upc"></div>
+      <div class="bar"><button class="btn" onclick="OWW.go('p-alerts')">Flag a low item</button><button class="btn" onclick="OWW.go('p-att')">My shifts &amp; requests</button></div>
+    </section>
+
+    <section class="page" id="p-alerts">
+      <div class="sec">Flag a low-stock item</div>
+      <div class="note">Search any Sala item (drinks, paper, cleaning…) and say how much is left. The manager gets it and handles the order.</div>
+      <div class="find"><input id="aq" name="oww-find3" placeholder="Search drinks, paper, cleaning…" autocomplete="off" data-lpignore="true" data-1p-ignore><div class="pop hide" id="ap"></div></div>
+      <div class="sec">Your flags this week</div>
+      <div class="note">A flag closes by itself when the item is refilled.</div>
+      <div id="mine"></div>
+    </section>
+
+    <section class="page" id="p-att">
+      <div id="rotam"></div>
+      <div id="reqs"></div>
+      <div class="stats" id="astats"></div>
+      <div style="padding:0 16px 12px"><div class="seg" id="aseg"><button class="on" data-v="log" style="flex:1">Log shift</button><button data-v="hist" style="flex:1">History</button></div></div>
+      <div id="a-log"><div class="cols"><div class="card" style="padding:14px;display:grid;gap:12px">
+        <label class="fld"><small>Date</small><input type="date" id="ad"></label>
+        <div class="two"><label class="fld"><small>Start time</small><input type="time" id="as"></label><label class="fld"><small>End time</small><input type="time" id="ae"></label></div>
+        <div class="two"><button class="sm" type="button" onclick="nowT('as')">Start = now</button><button class="sm" type="button" onclick="nowT('ae')">End = now</button></div>
+        <div class="dur" id="adur"></div>
+        <label class="fld"><small>Note (optional)</small><input id="am" placeholder="e.g. covered the grill" maxlength="120"></label>
+        <button class="btn p w" id="asave" onclick="saveShift()">Save shift</button></div></div></div>
+      <div id="a-hist" class="hide"><div class="find"><label class="fld"><small>Filter by date</small><input type="date" id="af"></label></div><div id="alist"></div></div>
+    </section>
+
+    <section class="page" id="p-set">
+      <div id="acct"></div>
+      <div class="cols"><div><div class="sec">Shifts</div><div class="card">
+        <div class="row"><button class="btn w" onclick="load(true)">Refresh data from sheet</button></div></div></div></div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button class="nb on" data-p="p-dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Dashboard</button>
+    <button class="nb" data-p="p-att"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Shifts</button>
+    <button class="nb" data-p="p-alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>Alerts<span class="bdg hide" id="ab"></span></button>
+    <button class="nb" data-p="p-set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</button>
+  </nav>
+</div>
+
+<div id="sheet"><div id="sheetc"></div></div>
+<script src="config.js"></script>
+<script src="oww.js"></script>
+<script src="i18n.js"></script>
+<script>
+const $ = OWW.$, esc = OWW.esc;
+
+document.querySelectorAll('.nb').forEach(b => b.onclick = () => OWW.go(b.dataset.p));
+
+OWW.start({
+  app: 'sala', title: 'OWW Sala', sub: 'Sign in with your work email', switchTo: { label: 'Open Admin', href: 'inventory.html', roles: ['Director', 'Sala Manager'] },
+  allow: ['Sala Staff', 'Sala Manager', 'Director'], deny: 'This app is for the Sala team. Kitchen staff use the Kitchen app.',
+  ready(u) {
+    $('sub').textContent = new Date().toLocaleDateString(OWW.loc(), { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + u.name;
+    OWW.account('acct'); $('ad').value = OWW.ymd(new Date());
+    try { const c = JSON.parse(localStorage.getItem('oww_sd_' + u.id)); if (c) { SD = c; renderAlerts(); } const a = JSON.parse(localStorage.getItem(akey())); if (a) { A = a; renderAtt(); } } catch (e) {} // saved data shows instantly
+    load(); loadAtt(); loadX();
+  }
+});
+
+async function load(manual) {
+  try { SD = await OWW.api('salaData'); localStorage.setItem('oww_sd_' + OWW.user.id, JSON.stringify(SD)); if (manual) OWW.toast('Data refreshed'); }
+  catch (e) { OWW.toast(e.message, 'red'); }
+  renderAlerts();
+}
+
+// ── alerts: flag a finished Sala item ──
+const stockItems = () => (SD.items || []).map(r => ({ id: r.id, name: r.name, m: r.name, unit: r.unit || '', loc: r.loc || '', kind: r.cat || 'Sala' })).filter(x => x.id && x.name);
+OWW.finder('aq', 'ap', () => stockItems().map(x => ({ k: x.id, l: x.name, m: x.m, t: [x.loc], s: x.kind + (x.unit ? ' · ' + x.unit : '') })), id => {
+  const c = stockItems().find(x => x.id === id);
+  OWW.sheet(`<div><div class="nm" style="font-size:18px">${esc(c.name)}</div><div class="sub">${esc(c.kind)}${c.loc ? ' · ' + esc(c.loc) : ''}</div></div>
+    <input id="fq" placeholder="How much is left? e.g. 2 bottiglie"><input id="fn" placeholder="Note (optional)">
+    <button class="btn p w" onclick="flag('${esc(id)}')">Send alert to manager</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
+});
+async function flag(id) {
+  const c = stockItems().find(x => x.id === id), q = $('fq').value.trim() || 'not specified', n = $('fn').value.trim(); OWW.close();
+  try {
+    const r = await OWW.send('raiseAlert', { itemId: id, itemName: c.name, qty: q, unit: c.unit, shift: OWW.shiftNow(), note: n });
+    if (r) { OWW.toast(r.duplicate ? 'Already flagged this week' : 'Alert sent ✓'); await load(); }
+  } catch (e) { OWW.toast(e.message, 'red'); }
+}
+function renderAlerts() {
+  const m = (SD.alerts || []).filter(a => a['Flagged By'] === OWW.user.full), open = m.filter(a => a['Status'] === 'OPEN' || a['Status'] === 'ORDERED').length;
+  $('ab').textContent = open; $('ab').classList.toggle('hide', !open);
+  const st = { OPEN: ['a', 'Waiting for manager'], ORDERED: ['a', 'Ordered'], REFILLED: ['g', 'Refilled ✓'], DISMISSED: ['', 'Dismissed'], RESET_FRIDAY: ['', 'Closed'] };
+  $('mine').innerHTML = m.length ? '<div class="card">' + m.map(a => { const s = st[a['Status']] || ['', a['Status']];
+    return `<div class="row"><div class="grow"><div class="nm">${esc(a['Item Name'])}</div><div class="sub">${esc(a['Qty Remaining'])} · ${esc(String(a['Date Raised']).slice(0, 10))}${a['Notes'] ? ' · “' + esc(a['Notes']) + '”' : ''}</div></div><span class="tag ${s[0]}">${s[1]}</span></div>`; }).join('') + '</div>'
+    : '<div class="empty">No alerts raised this week</div>';
+}
+
+// ── attendance (log + history): instant, saved in the background ──
+let A = { shifts: [] };
+const akey = () => 'oww_att_' + OWW.user.id;
+OWW.hooks['p-att'] = () => renderAtt();
+async function loadAtt() {
+  try { A = await OWW.api('shiftMine'); localStorage.setItem(akey(), JSON.stringify(A)); } catch (e) { return OWW.toast(e.message, 'red'); }
+  renderAtt();
+}
+document.querySelectorAll('#aseg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#aseg button').forEach(x => x.classList.toggle('on', x === b));
+  $('a-log').classList.toggle('hide', b.dataset.v !== 'log'); $('a-hist').classList.toggle('hide', b.dataset.v !== 'hist');
+});
+const toM = t => parseInt(t) * 60 + parseInt(t.split(':')[1]);
+function durUpdate() {
+  const a = $('as').value, e = $('ae').value; if (!a || !e) { $('adur').textContent = ''; return; }
+  let m = toM(e) - toM(a); const over = m < 0; if (m <= 0) m += 1440;
+  $('adur').innerHTML = m > 420 ? '<span style="color:var(--red)">' + OWW.hrs(m / 60) + ' — longer than 7 hours, it will be blocked</span>' : 'Duration: <b>' + OWW.hrs(m / 60) + '</b>' + (over ? ' (overnight)' : '');
+}
+$('as').oninput = $('ae').oninput = durUpdate; $('af').oninput = () => renderAtt();
+function checkShift(date, st, en) {
+  if (!date || !st || !en) return 'Enter the date, start time and end time';
+  const a = toM(st); let z = toM(en); if (a === z) return 'Start and end time cannot be the same'; if (z < a) z += 1440;
+  if ((z - a) / 60 > 7) return 'Blocked: a shift cannot be longer than 7 hours';
+  if (A.shifts.some(x => { if (x.date !== date) return false; const p = toM(x.start); let q = toM(x.end); if (q < p) q += 1440; return a < q && z > p; }))
+    return 'Overlap: you already logged a shift that conflicts with this time';
+  return '';
+}
+async function saveShift() {
+  const date = $('ad').value, start = $('as').value, end = $('ae').value, memo = $('am').value.trim(), bad = checkShift(date, start, end);
+  if (bad) return OWW.toast(bad, 'red');
+  const d = dev(date, start, end), g = A.grace ?? 5;
+  if (d && (d.late > g || d.early > g)) return reasonSheet(devText(d), r => commitShift(date, start, end, memo, r, d)); // late / early: ask why first
+  commitShift(date, start, end, memo, '', d);
+}
+async function commitShift(date, start, end, memo, reason, d) {
+  let m = toM(end) - toM(start); if (m <= 0) m += 1440;
+  const t = { id: 'tmp' + Date.now(), date, start, end, memo, reason, late: d ? d.late : 0, early: d ? d.early : 0, hours: Math.round(m / 60 * 100) / 100, pending: true };
+  A.shifts.push(t); A.shifts.sort((x, y) => x.date === y.date ? y.start.localeCompare(x.start) : y.date.localeCompare(x.date));
+  $('as').value = $('ae').value = $('am').value = ''; durUpdate(); renderAtt(); OWW.toast('Shift saved ✓'); // shown instantly
+  try { const r = await OWW.send('shiftLog', { date, start, end, memo, reason }); if (r) { t.id = r.id; t.late = r.late; t.early = r.early; delete t.pending; renderAtt(); localStorage.setItem(akey(), JSON.stringify(A)); } }
+  catch (e) {
+    A.shifts = A.shifts.filter(x => x !== t); renderAtt();
+    const q = /^REASON_REQUIRED:(\d+):(\d+)$/.exec(e.message); // the server found a late / early leave that the phone could not see (e.g. a past day)
+    if (q) return reasonSheet(devText({ late: +q[1], early: +q[2] }), r => commitShift(date, start, end, memo, r, d));
+    $('as').value = start; $('ae').value = end; $('am').value = memo; durUpdate(); OWW.toast(e.message, 'red');
+  }
+}
+function stats() {
+  const d = new Date(), mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7), prev = new Date(mon); prev.setDate(mon.getDate() - 7);
+  const w0 = OWW.ymd(mon), p0 = OWW.ymd(prev), m0 = OWW.ymd(d).slice(0, 7), s = { week: 0, last: 0, month: 0 }, days = new Set();
+  A.shifts.forEach(x => { if (x.date >= w0) s.week += x.hours; else if (x.date >= p0) s.last += x.hours; if (x.date.slice(0, 7) === m0) { s.month += x.hours; days.add(x.date); } });
+  s.days = days.size; return s;
+}
+function renderAtt() {
+  renderRota();
+  const s = stats();
+  $('astats').innerHTML = [['This week', OWW.hrs(s.week)], ['Last week', OWW.hrs(s.last)], ['This month', OWW.hrs(s.month)], ['Days this month', s.days], ['Late this month', lateN()]]
+    .map(x => `<div class="stat"><small>${x[0]}</small><b style="font-size:21px">${x[1]}</b></div>`).join('');
+  const f = $('af').value, l = A.shifts.filter(x => !f || x.date === f), g = {};
+  l.forEach(x => (g[x.date] = g[x.date] || []).push(x));
+  $('alist').innerHTML = Object.keys(g).length ? Object.keys(g).map(d => `<div class="sec">${OWW.day(d)}</div><div class="card">` + g[d].map(x =>
+    `<div class="row"><span class="tag b">${OWW.kind(x.start)}</span><div class="grow"><div class="nm">${esc(x.start)} → ${esc(x.end)}</div>${x.memo ? `<div class="sub">${esc(x.memo)}</div>` : ''}</div>${pTags(x)}${stTag(x)}<b>${OWW.hrs(x.hours)}</b></div>`).join('') + '</div>').join('')
+    : '<div class="empty">No shifts logged' + (f ? ' on this date' : ' yet') + '</div>';
+}
+async function refresh() {
+  const b = $('rf'); b.disabled = true; b.textContent = '…';
+  try { await Promise.all([load(), loadAtt(), loadX()]); OWW.toast('Updated'); } finally { b.disabled = false; b.textContent = '↻'; }
+}
+</script>
+<script src="sala-x.js"></script>
+</body>
+</html>

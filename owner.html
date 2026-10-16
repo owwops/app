@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="manifest" href="manifest-owner.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OWW Owner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="oww.css">
+<body>
+<div id="login"></div>
+
+<div id="app" class="hide">
+  <header id="top">
+    <div class="brand"><img src="logo.png" alt=""><div><b>Owner</b><small id="sub"></small></div></div>
+    <button class="sm" id="rf" onclick="refresh()" aria-label="Refresh live" style="font-size:16px;padding:5px 12px">↻</button>
+  </header>
+
+  <main id="main">
+    <section class="page on" id="p-ov">
+      <div class="chips" id="ov-sum"></div>
+      <div class="note" id="ov-upd"></div>
+      <div class="bcards" id="ov-cards"></div>
+    </section>
+
+    <section class="page" id="p-at">
+      <div class="chips" id="at-f"></div>
+      <div class="card" id="at-list"></div>
+    </section>
+
+    <section class="page" id="p-cmp">
+      <div class="note">Tap a column heading to sort. Green = best, red = worst (when there are 3 branches or more).</div>
+      <div class="card" style="overflow-x:auto" id="cmp"></div>
+    </section>
+
+    <section class="page" id="p-tr">
+      <div class="sel"><select id="tr-b" aria-label="Branch"></select><select id="tr-m" aria-label="Measure"></select></div>
+      <div class="chips" id="tr-d"></div>
+      <div class="legend" id="tr-l"></div>
+      <div class="chart" id="tr-c"></div>
+      <div class="note" id="tr-n"></div>
+    </section>
+
+    <section class="page" id="p-br">
+      <div class="bar"><button class="btn" onclick="OWW.go('p-ov')">← All branches</button></div>
+      <div id="br-head"></div>
+      <div id="br-body"></div>
+    </section>
+
+    <section class="page" id="p-set">
+      <div id="acct"></div>
+      <div class="sec">Branches</div>
+      <div id="br-list"></div>
+      <div class="bar"><button class="btn p" id="br-add">Add a branch</button></div>
+      <div class="sec">What needs attention</div>
+      <div class="note">These numbers decide when a branch turns amber or red.</div>
+      <div class="card" id="cfg"></div>
+      <div class="bar"><button class="btn" id="cfg-save">Save</button></div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button class="nb on" data-p="p-ov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Overview</button>
+    <button class="nb" data-p="p-at"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>Attention<span class="bdg hide" id="atb"></span></button>
+    <button class="nb" data-p="p-cmp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Compare</button>
+    <button class="nb" data-p="p-tr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Trends</button>
+    <button class="nb" data-p="p-set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</button>
+  </nav>
+</div>
+
+<div id="sheet"><div id="sheetc"></div></div>
+
+<script src="config.js"></script>
+<script src="oww.js"></script>
+<script src="i18n.js"></script>
+<script>
+const $ = OWW.$, esc = OWW.esc;
+OWW.SK = 'oww_owner_s'; OWW.QK = 'oww_owner_q'; // the Owner app keeps its own login: opening a branch never signs the owner out of it
+document.querySelectorAll('.nb').forEach(b => b.onclick = () => OWW.go(b.dataset.p));
+OWW.start({
+  app: 'owner', title: 'OWW Owner', sub: 'Owner sign-in', allow: ['Owner'], deny: 'The Owner app is for the owner only.',
+  ready(u) {
+    $('sub').textContent = u.name; OWW.account('acct');
+    OWW.hooks['p-tr'] = () => loadTrends(); OWW.hooks['p-set'] = () => loadSettings();
+    load(false); setInterval(() => { if (!document.hidden && OWW.tk) load(false); }, 120000);
+  }
+});
+</script>
+<script src="owner-x.js"></script>
+</body>
+</html>

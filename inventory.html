@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="manifest" href="manifest-inventory.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OWW Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="oww.css">
+<body>
+<div id="login"></div>
+
+<div id="app" class="hide">
+  <header id="top">
+    <div class="brand"><img src="logo.png" alt=""><div><b>Admin</b><small id="sub"></small></div></div>
+    <button class="sm" id="rf" onclick="refresh()">↻ Refresh</button>
+  </header>
+
+  <main id="main">
+    <section class="page on" id="p-today">
+      <div class="sec" id="tdate">Today</div>
+      <div class="stats" id="tstats"></div>
+      <div class="cols">
+        <div><div class="sec">Team today</div><div class="card" id="tteam"></div>
+          <div class="sec" id="tsecT">Fridge temperatures</div><div class="card" id="ttemp"></div>
+          <div class="sec">Deliveries &amp; orders</div><div class="card" id="troutine"></div>
+          <div class="sec">Punctuality</div><div class="card" id="tpunct"></div></div>
+        <div><div class="sec">To approve</div><div class="card" id="treq"></div>
+          <div class="sec">Open stock alerts (Havi + Verdura)</div><div class="card" id="talerts"></div>
+          <div class="sec">Events this week</div><div class="card" id="tevents"></div></div>
+      </div>
+    </section>
+
+    <section class="page" id="p-dash">
+      <div class="bar"><button class="btn" onclick="navGo('dash')">← Dashboard</button></div>
+      <div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding-right:16px">Upcoming events <button class="sm a" onclick="addEvent()">+ Add event</button></div>
+      <div id="evlist"></div>
+      <div class="sec">Staff attendance</div>
+      <div class="chips" id="dchips"></div>
+      <div class="chips" id="dareas"></div>
+      <div class="two" style="padding:0 16px 10px"><label class="fld"><small>From</small><input type="date" id="df"></label><label class="fld"><small>To</small><input type="date" id="dt"></label></div>
+      <div class="stats" id="dstats"></div>
+      <div class="bar"><button class="btn g" onclick="approveAll()">Approve all pending</button><button class="btn" onclick="exportCsv()">Export CSV</button></div>
+      <div class="cols">
+        <div><div class="sec">Hours per person</div><div class="card" id="dsum"></div></div>
+        <div><div class="sec">Shift log</div><div id="dlist"></div></div>
+      </div>
+    </section>
+
+    <section class="page" id="p-rota">
+      <div class="sec" id="rtitle">Weekly rota</div>
+      <div style="display:flex;gap:8px;padding:0 16px 10px;align-items:center"><button class="btn" onclick="wk(-1)" aria-label="Previous week">‹</button><div class="grow nm" id="wlab" style="text-align:center"></div><button class="btn" onclick="wk(1)" aria-label="Next week">›</button></div>
+      <div class="bar" id="rbar"><button class="btn" onclick="copyWeek()">Copy previous week</button><button class="btn p" onclick="OWW.go('p-rimp')">Import timetable</button></div>
+      <div class="card" style="overflow-x:auto" id="rtab"></div>
+      <div class="note" id="rnote"></div>
+    </section>
+
+    <section class="page" id="p-haccp">
+      <div class="sec">Fridge temperature checks</div>
+      <div class="two" style="padding:0 16px 10px"><label class="fld"><small>Date</small><input type="date" id="hd"></label></div>
+      <div class="stats" id="hstats"></div>
+      <div class="cols">
+        <div><div class="sec">Readings</div><div id="hgrid"></div></div>
+        <div><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding-right:16px">Fridges &amp; freezers <button class="sm a" onclick="fridgeForm()">+ Add fridge</button></div><div class="card" id="hfr"></div></div>
+      </div>
+    </section>
+
+    <section class="page" id="p-rimp">
+      <div class="sec">Import weekly timetable</div>
+      <div class="note">Upload the Excel / CSV the director makes (exact), or a photo of the printed timetable. You check everything before it is saved.</div>
+      <div class="card"><div class="row" style="display:grid;gap:10px">
+        <input type="file" id="rfile" accept=".xlsx,.xls,.csv,image/*">
+        <label class="fld"><small>Week starts on Monday</small><input type="date" id="rwk"></label>
+        <div class="sub" id="rhint"></div>
+        <button class="btn p w" id="rscan" onclick="rimpRead()">Read file</button>
+        <button class="btn w" onclick="navGo(rk())">Back to rota</button>
+        <div class="sub" id="rprog"></div></div></div>
+      <div id="rrev"></div>
+    </section>
+
+    <section class="page" id="p-count">
+      <div class="bar"><button class="btn" onclick="navGo('havi')">← Stock (Havi)</button></div>
+      <div class="sec">Count by shelf walk</div>
+      <div id="cn-body"></div>
+    </section>
+
+    <section class="page" id="p-imp">
+      <div class="bar"><button class="btn" onclick="navGo('havi')">← Stock (Havi)</button></div>
+      <div class="sec">Import a stock count</div>
+      <div class="note">Upload a photo or PDF of your count sheet, or a CSV. You review everything before anything is saved. Photos work best when printed or in clear block letters, taken flat and in good light.</div>
+      <div class="card"><div class="row" style="display:grid;gap:10px">
+        <input type="file" id="file" accept="image/*,application/pdf,.csv,.txt">
+        <button class="btn p w" id="scan" onclick="scan()">Read file</button>
+        <button class="btn w" onclick="dlSheet()">Download blank count sheet (CSV)</button>
+        <div class="sub" id="prog"></div></div></div>
+      <div id="review"></div>
+    </section>
+
+    <section class="page" id="p-havi"><div id="hv-root"></div></section>
+
+    <section class="page" id="p-verd"><div id="vd-root"></div></section>
+
+    <section class="page" id="p-set">
+      <div id="acct"></div>
+      <div id="oswitch" class="hide"><div class="sec">Branch</div><div class="card"><div class="row"><select id="osel" aria-label="Branch"></select><button class="btn p" id="ogo">Open</button></div></div></div>
+      <div id="dir" class="hide">
+        <div class="sec">Weekly summary email</div>
+        <div class="card"><div class="row" style="display:grid;gap:10px"><div class="sub">Sent automatically every Monday morning to the director: hours, punctuality, temperatures, stock, deliveries and alerts. You can also send it now.</div>
+          <div class="two"><button class="btn" onclick="sendSummary('last')">Email me last week</button><button class="btn" onclick="sendSummary('this')">Email me this week so far</button></div></div></div>
+        <div class="sec">Users</div>
+        <div id="users"></div>
+        <div class="bar"><button class="btn p" onclick="addUser()">Add user</button></div>
+      </div>
+    </section>
+  </main>
+
+  <nav id="nav"></nav>
+</div>
+
+<div id="sheet"><div id="sheetc"></div></div>
+<script src="config.js"></script>
+<script src="oww.js"></script>
+<script src="i18n.js"></script>
+<script src="ddt.js"></script>
+<script>
+const $ = OWW.$, esc = OWW.esc;
+let RA = 'KITCHEN', HV = null, VD = null, D = { inv: [] }; // RA = the area of the rota page; D = every item the person may see (used by the stock-count import)
+
+// ── navigation: only what the role may use ──
+const ICO = {
+  dash: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', rota: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  haccp: '<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>', havi: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  verd: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>',
+  set: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>' };
+const NAV = [ // key, page, short label (phone), long label (laptop), icon, area it needs, badge id, extra
+  ['dash', 'p-today', 'Dashboard', 'Dashboard', 'dash', '', 'tb'], ['rotaK', 'p-rota', 'Rota K', 'Rota (Kitchen)', 'rota', 'KITCHEN', ''], ['rotaS', 'p-rota', 'Rota S', 'Rota (Sala)', 'rota', 'SALA', ''],
+  ['haccp', 'p-haccp', 'HACCP', 'HACCP', 'haccp', 'KITCHEN', 'hb'], ['havi', 'p-havi', 'Havi', 'Stock (Havi)', 'havi', '', 'hvb'], ['verd', 'p-verd', 'Verdura', 'Stock (Verdura)', 'verd', '', 'vdb'], ['set', 'p-set', 'Settings', 'Settings', 'set', '', '']];
+const PAGES = { hours: ['p-dash', 'dash'], count: ['p-count', 'havi'], imp: ['p-imp', 'havi'], rimp: ['p-rimp', null] };
+function navGo(key) {
+  const n = NAV.find(x => x[0] === key); let page, hl;
+  if (n) { page = n[1]; hl = key; if (key === 'rotaK' || key === 'rotaS') { const a = key === 'rotaS' ? 'SALA' : 'KITCHEN'; if (a !== RA) RD = { rows: [], users: [], presets: [] }; RA = a; } }
+  else if (PAGES[key]) { page = PAGES[key][0]; hl = PAGES[key][1] || rk(); } else return;
+  OWW.go(page); document.querySelectorAll('.nb').forEach(b => b.classList.toggle('on', b.dataset.k === hl));
+}
+const setBadge = (id, n) => { const b = $(id); if (b) { b.textContent = n; b.classList.toggle('hide', !n); } };
+function buildNav(sc) {
+  $('nav').innerHTML = NAV.filter(n => !n[5] || sc.includes(n[5])).map(n => `<button class="nb" data-k="${n[0]}" data-p="${n[1]}" aria-label="${n[3]}" title="${n[3]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO[n[4]]}</svg><span class="s">${n[2]}</span><span class="l">${n[3]}</span>${n[6] ? `<span class="bdg hide" id="${n[6]}"></span>` : ''}</button>`).join('');
+  $('nav').onclick = e => { const b = e.target.closest('.nb'); if (b) navGo(b.dataset.k); };
+}
+
+OWW.start({
+  app: 'admin', title: 'OWW Admin', sub: 'Managers, director & owner', allow: ['Director', 'Kitchen Manager', 'Sala Manager', 'Owner'], deny: 'The Admin app is for managers, the director and the owner.',
+  switchTo: [{ label: 'Open Kitchen', href: 'kitchen.html', roles: ['Director', 'Kitchen Manager'], icon: '🍳' }, { label: 'Open Sala', href: 'sala.html', roles: ['Director', 'Sala Manager'], icon: '🍽️' }],
+  ready(u) {
+    const sc = SCOPE(u); RA = sc[0]; buildNav(sc); if (u.role === 'Owner') ownerLayer(u);
+    $('sub').textContent = u.name + ' · ' + u.role; OWW.account('acct'); $('dir').classList.toggle('hide', !(u.role === 'Director' || u.role === 'Owner'));
+    HV = StockPage({ key: 'hv', supplier: 'HAVI', root: 'hv-root', badge: n => setBadge('hvb', n), onload: syncD }); VD = StockPage({ key: 'vd', supplier: 'VERDURA', root: 'vd-root', badge: n => setBadge('vdb', n), onload: syncD });
+    OWW.hooks['p-havi'] = () => HV.load(); OWW.hooks['p-verd'] = () => VD.load(); OWW.hooks['p-set'] = () => loadUsers();
+    loadAll(); setP('week'); loadEvents(); loadH(); navGo('dash');
+  }
+});
+// The Owner only LOOKS (the branch refuses every change as well). From the Owner app the branch opens through a one-time pass.
+function ownerLayer(u) {
+  document.body.classList.add('ro');
+  const s = JSON.parse(localStorage.getItem(OWW.SK) || 'null') || {}, d = document.createElement('div'); d.id = 'robar'; d.className = 'card'; d.style.cssText = 'margin:10px 16px 0;padding:10px 12px;display:flex;gap:10px;align-items:center';
+  d.innerHTML = `<div class="grow"><div class="nm">👁 View only</div><div class="sub">${esc(s.bname || u.branch)}</div></div>` + (s.layer ? '<button class="sm a" onclick="OWW.logout()">← Owner app</button>' : '');
+  $('main').prepend(d); if (s.layer) ownerSwitch();
+}
+async function ownerSwitch() { // branch dropdown, visible to the owner only
+  const C = (window.OWW_CONFIG || {}).OWNER_URL, os = JSON.parse(localStorage.getItem('oww_owner_s') || 'null'); if (!C || !os) return; let l;
+  try { l = await OWW.call(C, os.tk, 'branchList', {}, 'oww_owner_s'); } catch (e) { return; } l = l.filter(b => b.status === 'ACTIVE'); if (l.length < 2) return;
+  const cur = (JSON.parse(localStorage.getItem(OWW.SK) || 'null') || {}).bname; $('oswitch').classList.remove('hide');
+  $('osel').innerHTML = l.map(b => `<option value="${esc(b.id)}" ${b.name === cur ? 'selected' : ''}>${esc(b.name)}</option>`).join('');
+  $('ogo').onclick = async () => { try { const p = await OWW.call(C, os.tk, 'branchPass', { id: $('osel').value }, 'oww_owner_s'); localStorage.setItem(OWW.SK, JSON.stringify({ tk: p.token, user: p.user, url: p.url, layer: true, bname: p.branch })); location.reload(); } catch (e) { OWW.toast(e.message, 'red'); } };
+}
+function syncD() { D.inv = (HV ? HV.D.inv : []).concat(VD ? VD.D.inv : []); }
+async function loadAll() { await Promise.all([HV.load(), VD.load(), loadToday()]); syncD(); }
+const load = loadAll; // used by the shelf-walk count and the stock-count import
+async function refresh() {
+  const b = $('rf'); b.disabled = true; b.textContent = 'Updating…';
+  try { await Promise.all([loadAll(), loadDash(), loadEvents(), loadH()]); OWW.toast('Updated'); } finally { b.disabled = false; b.textContent = '↻ Refresh'; }
+}
+// ── upcoming events ──
+let EV = [];
+const evSort = () => EV.sort((a, b) => a.date === b.date ? (a.time || '').localeCompare(b.time || '') : a.date.localeCompare(b.date));
+const rel = d => { const n = Math.round((new Date(d + 'T12:00') - new Date(OWW.ymd(new Date()) + 'T12:00')) / 864e5); return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : 'in ' + n + ' days'; };
+async function loadEvents() { try { EV = await OWW.api('eventList'); } catch (e) { return OWW.toast(e.message, 'red'); } renderEvents(); }
+function renderEvents() {
+  $('evlist').innerHTML = '<div class="card">' + (EV.length ? EV.map(e => { const d = new Date(e.date + 'T12:00');
+    return `<div class="row"><div style="min-width:46px;text-align:center"><div style="font-weight:700;font-size:20px;line-height:1">${d.getDate()}</div><div class="sub">${d.toLocaleDateString(OWW.loc(), { month: 'short' })}</div></div>
+      <div class="grow"><div class="nm">${esc(e.title)}${e.area && e.area !== 'ALL' ? ` <span class="tag ${e.area === 'SALA' ? 'b' : 'a'}">${AREAN[e.area]}</span>` : ''}</div><div class="sub">${rel(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.notes ? ' · ' + esc(e.notes) : ''}</div></div>
+      ${e.pending ? '<span class="tag a">saving</span>' : `<button class="sm" aria-label="Delete event" onclick="delEvent('${esc(e.id)}')">✕</button>`}</div>`; }).join('')
+    : '<div class="empty">No upcoming events. Tap “Add event”.</div>') + '</div>';
+}
+function addEvent() {
+  OWW.sheet(`<div class="nm" style="font-size:18px">Add event</div><input id="et" placeholder="Title, e.g. Birthday party – 30 people" maxlength="80">
+    <div class="two"><label class="fld"><small>Date</small><input type="date" id="ed" value="${OWW.ymd(new Date())}"></label><label class="fld"><small>Time (optional)</small><input type="time" id="eh"></label></div>
+    <input id="en" placeholder="Notes (optional)" maxlength="160">${SCOPE(OWW.user).length > 1 ? '<select id="ea"><option value="ALL">Everybody (Kitchen + Sala)</option><option value="KITCHEN">Kitchen only</option><option value="SALA">Sala only</option></select>' : ''}<div class="err" id="eer"></div>
+    <button class="btn p w" onclick="saveEvent()">Save event</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
+}
+async function saveEvent() {
+  const e = { title: $('et').value.trim(), date: $('ed').value, time: $('eh').value, notes: $('en').value.trim(), area: $('ea') ? $('ea').value : SCOPE(OWW.user)[0] };
+  if (!e.title) { $('eer').textContent = 'Give the event a title'; return; }
+  if (!e.date || e.date < OWW.ymd(new Date())) { $('eer').textContent = 'Pick today or a future date'; return; }
+  OWW.close(); const t = { ...e, id: 'tmp' + Date.now(), pending: true }; EV.push(t); evSort(); renderEvents(); // shown instantly
+  try { const r = await OWW.api('eventAdd', e); t.id = r.id; delete t.pending; renderEvents(); OWW.toast('Event added ✓'); }
+  catch (x) { EV = EV.filter(i => i !== t); renderEvents(); OWW.toast(x.message, 'red'); }
+}
+async function delEvent(id) {
+  if (!confirm('Delete this event?')) return; const keep = EV; EV = EV.filter(e => e.id !== id); renderEvents();
+  try { await OWW.api('eventDelete', { id }); } catch (e) { EV = keep; renderEvents(); OWW.toast(e.message, 'red'); }
+}
+// ── attendance dashboard ──
+let P = 'week', S = [];
+OWW.hooks['p-dash'] = () => loadDash();
+function range(p) {
+  const d = new Date(); if (p === 'today') return [OWW.ymd(d), OWW.ymd(d)];
+  if (p === 'week') { const m = new Date(d); m.setDate(d.getDate() - (d.getDay() + 6) % 7); const e = new Date(m); e.setDate(m.getDate() + 6); return [OWW.ymd(m), OWW.ymd(e)]; }
+  return [OWW.ymd(new Date(d.getFullYear(), d.getMonth(), 1)), OWW.ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0))];
+}
+function setP(p) { P = p; if (p !== 'custom') { const r = range(p); $('df').value = r[0]; $('dt').value = r[1]; } loadDash(); }
+$('df').onchange = $('dt').onchange = () => { P = 'custom'; loadDash(); };
+$('dchips').onclick = e => { const b = e.target.closest('[data-p]'); if (b) setP(b.dataset.p); };
+let DA = 'ALL';
+$('dareas').onclick = e => { const b = e.target.closest('[data-ar]'); if (b) { DA = b.dataset.ar; loadDash(); } };
+async function loadDash() { try { S = await OWW.api('shiftAll', { from: $('df').value, to: $('dt').value, area: DA === 'ALL' ? '' : DA }); } catch (e) { return OWW.toast(e.message, 'red'); } renderDash(); }
+function renderDash() {
+  $('dchips').innerHTML = [['today', 'Today'], ['week', 'This week'], ['month', 'This month'], ['custom', 'Custom']].map(c => `<button class="chip ${P === c[0] ? 'on' : ''}" data-p="${c[0]}">${c[1]}</button>`).join('');
+  $('dareas').innerHTML = SCOPE(OWW.user).length > 1 ? [['ALL', 'Kitchen + Sala'], ['KITCHEN', 'Kitchen'], ['SALA', 'Sala']].map(c => `<button class="chip ${DA === c[0] ? 'on' : ''}" data-ar="${c[0]}">${c[1]}</button>`).join('') : '';
+  const per = {}; S.forEach(x => { const p = per[x.uid] = per[x.uid] || { name: x.name, role: x.role, n: 0, h: 0, ap: 0 }; p.n++; p.h += x.hours; if (x.status === 'APPROVED') p.ap += x.hours; });
+  const ppl = Object.values(per).sort((a, b) => b.h - a.h), tot = S.reduce((s, x) => s + x.hours, 0);
+  $('dstats').innerHTML = [['Total hours', OWW.hrs(tot)], ['Shifts', S.length], ['Staff', ppl.length]].map(x => `<div class="stat"><small>${x[0]}</small><b style="font-size:22px">${x[1]}</b></div>`).join('');
+  $('dsum').innerHTML = ppl.length ? ppl.map(p => `<div class="row"><div class="grow"><div class="nm">${esc(p.name)}</div><div class="sub">${esc(p.role)} · ${p.n} shift${p.n > 1 ? 's' : ''}</div></div><div style="text-align:right"><b>${OWW.hrs(p.h)}</b><div class="sub">${OWW.hrs(p.ap)} approved</div></div></div>`).join('') : '<div class="empty">No shifts in this period</div>';
+  const g = {}; S.forEach(x => (g[x.date] = g[x.date] || []).push(x));
+  $('dlist').innerHTML = Object.keys(g).length ? Object.keys(g).map(d => `<div class="sec" style="padding-top:0">${OWW.day(d)}</div><div class="card">` + g[d].map(x =>
+    `<div class="row"><span class="tag b">${OWW.kind(x.start)}</span><div class="grow"><div class="nm">${esc(x.name)}${SCOPE(OWW.user).length > 1 ? ` <span class="tag ${x.area === 'SALA' ? 'b' : 'a'}">${AREAN[x.area] || '—'}</span>` : ''}</div><div class="sub">${esc(x.start)} → ${esc(x.end)}${x.memo ? ' · ' + esc(x.memo) : ''}</div></div>${stTag(x)}<b>${OWW.hrs(x.hours)}</b>${apBtn(x)}<button class="sm" aria-label="Delete shift" onclick="delShift('${esc(x.id)}')">✕</button></div>`).join('') + '</div>').join('')
+    : '<div class="empty">No shifts in this period</div>';
+}
+async function delShift(id) { if (!confirm('Delete this shift record?')) return; try { await OWW.api('shiftDelete', { id }); await loadDash(); } catch (e) { OWW.toast(e.message, 'red'); } }
+
+// ── users (Director / Owner): Kitchen, Sala and management ──
+let USERS = [];
+async function loadUsers() { try { USERS = await OWW.api('userList'); } catch (e) { return; } renderUsers(); }
+function renderUsers() {
+  const grp = [['KITCHEN', 'Kitchen team'], ['SALA', 'Sala team'], ['', 'Management']];
+  $('users').innerHTML = grp.map(g => { const l = USERS.filter(u => (u.area || '') === g[0]); if (!l.length) return '';
+    return `<div class="sec" style="padding-top:0">${g[1]}</div><div class="card">` + l.map(u => { const on = String(u.status).toUpperCase() === 'ACTIVE';
+      return `<div class="row" style="flex-wrap:wrap"><div class="grow"><div class="nm">${esc(u.full)}</div><div class="sub">${esc(u.email || 'no email yet')} · ${esc(u.role)}${u.hasPw ? '' : ' · no password'}</div></div>
+        <span class="tag ${on ? 'g' : 'r'}">${on ? 'Active' : 'Inactive'}</span>
+        <button class="sm" onclick="resetPw('${esc(u.id)}','${esc(u.name)}')">Password</button>
+        ${u.id === OWW.user.id ? '' : `<button class="sm ${on ? '' : 'g'}" onclick="setActive('${esc(u.id)}',${!on})">${on ? 'Deactivate' : 'Reactivate'}</button>`}</div>`; }).join('') + '</div>'; }).join('') || '<div class="empty">No users</div>';
+}
+async function setActive(id, active) { try { await OWW.api('setUserStatus', { userId: id, active }); await loadUsers(); } catch (e) { OWW.toast(e.message, 'red'); } }
+function addUser() {
+  OWW.sheet(`<div class="nm" style="font-size:18px">Add user</div>
+    <input id="nf" placeholder="First name"><input id="nl" placeholder="Last name"><input id="ne" type="email" placeholder="Email" autocapitalize="none">
+    <select id="nr"><option>Kitchen Staff</option><option>Sala Staff</option><option>Kitchen Manager</option><option>Sala Manager</option><option>Director</option><option>Owner</option></select>
+    <input id="np" type="text" placeholder="Temporary password (8+ characters)"><div class="err" id="ner"></div>
+    <button class="btn p w" onclick="saveUser()">Create user</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
+}
+async function saveUser() {
+  try { await OWW.api('addUser', { first: $('nf').value.trim(), last: $('nl').value.trim(), email: $('ne').value.trim(), role: $('nr').value, password: $('np').value });
+    OWW.close(); OWW.toast('User created'); await loadUsers(); } catch (e) { $('ner').textContent = e.message; }
+}
+function resetPw(id, n) {
+  OWW.sheet(`<div class="nm" style="font-size:18px">New password for ${esc(n)}</div><input id="rp" type="text" placeholder="New password (8+ characters)"><div class="err" id="rer"></div>
+    <button class="btn p w" onclick="doReset('${esc(id)}')">Save password</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
+}
+async function doReset(id) { try { await OWW.api('resetUserPassword', { userId: id, password: $('rp').value }); OWW.close(); OWW.toast('Password updated'); await loadUsers(); } catch (e) { $('rer').textContent = e.message; } }
+
+// ── import: photo / PDF / CSV → review → bulk update ──
+const TESS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
+  PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  PDFW = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js', NUM = /\d+(?:[.,]\d+)?/g;
+let R = [];
+const prog = t => $('prog').textContent = t;
+const lib = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Could not load the reader. Check your internet connection.')); document.head.appendChild(s); });
+const nz = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/(\d),(\d)/g, '$1.$2').replace(/[^a-z0-9.\s]/g, ' ').replace(/\.(?!\d)/g, ' ');
+const toks = s => nz(s).split(/\s+/).filter(t => t.length > 1 || /\d/.test(t));
+function lev(a, b) { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+const tsim = (a, b) => a === b ? 1 : (a.length < 4 || b.length < 4 ? 0 : 1 - lev(a, b) / Math.max(a.length, b.length));
+
+function matchLine(text) {
+  const lt = toks(text), words = lt.filter(t => !/^[\d.]+$/.test(t)); if (!words.length) return null;
+  let best = null, bs = 0;
+  for (const it of D.inv) {
+    it.tk = it.tk || toks(it.name); let m = 0; const used = new Set();
+    it.tk.forEach(t => { let s = 0, j = -1; lt.forEach((u, k) => { if (!used.has(k)) { const x = tsim(t, u); if (x > s) { s = x; j = k; } } }); if (s >= .75) { m += s; used.add(j); } });
+    const sc = 2 * m / (it.tk.length + words.length); if (sc > bs) { bs = sc; best = it; }
+  }
+  return bs >= .35 ? { it: best, sc: bs } : null;
+}
+function parseLine(raw, csv) {
+  let text = raw.trim(), qty = null; if (text.length < 2) return null;
+  if (csv) { const c = text.split(/[;\t,]/).map(s => s.replace(/^"|"$/g, '').trim()); text = c[0]; const n = (c[1] || '').match(NUM); qty = n ? parseFloat(n[0].replace(',', '.')) : null; if (qty === null) return null; }
+  const m = matchLine(text);
+  if (!csv) { const nums = text.match(NUM) || []; if (m) (m.it.name.match(NUM) || []).forEach(x => { const i = nums.indexOf(x); if (i > -1) nums.splice(i, 1); });
+    qty = nums.length ? parseFloat(nums[nums.length - 1].replace(',', '.')) : null; }
+  if (!m && qty === null) return null; // headings and noise
+  return { line: text, id: m ? m.it.id : '', sc: m ? m.sc : 0, qty };
+}
+async function toCanvas(f) {
+  const bm = await createImageBitmap(f, { imageOrientation: 'from-image' }), k = Math.min(1, 2200 / Math.max(bm.width, bm.height)), c = document.createElement('canvas');
+  c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+  const x = c.getContext('2d'); x.filter = 'grayscale(1) contrast(1.3)'; x.drawImage(bm, 0, 0, c.width, c.height); return c;
+}
+async function ocr(canvases) {
+  prog('Loading reader (first time takes a moment)…'); await lib(TESS);
+  const w = await Tesseract.createWorker('ita+eng', 1, { logger: m => { if (m.status === 'recognizing text') prog('Reading… ' + Math.round(m.progress * 100) + '%'); } });
+  let t = ''; for (const c of canvases) t += (await w.recognize(c)).data.text + '\n'; await w.terminate(); return t.split('\n');
+}
+async function pdfLines(f) {
+  prog('Opening PDF…'); await lib(PDFJS); pdfjsLib.GlobalWorkerOptions.workerSrc = PDFW;
+  const doc = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise, lines = [], pages = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const pg = await doc.getPage(p), tc = await pg.getTextContent(), rows = {}; pages.push(pg);
+    tc.items.forEach(i => { const y = Math.round(i.transform[5] / 5); (rows[y] = rows[y] || []).push(i); });
+    Object.keys(rows).map(Number).sort((a, b) => b - a).forEach(y => lines.push(rows[y].sort((a, b) => a.transform[4] - b.transform[4]).map(i => i.str).join(' ')));
+  }
+  if (lines.join('').length > 40) return lines; // normal PDF with real text: exact
+  const cs = []; // scanned PDF: render pages and read them as images
+  for (const pg of pages) { const vp = pg.getViewport({ scale: 2 }), c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; cs.push(c); }
+  return ocr(cs);
+}
+async function scan() {
+  const f = $('file').files[0]; if (!f) return OWW.toast('Choose a file first', 'amber');
+  const b = $('scan'); b.disabled = true; R = [];
+  try {
+    const csv = /\.csv$/i.test(f.name); let lines;
+    if (csv || /\.txt$/i.test(f.name)) lines = (await f.text()).split(/\r?\n/);
+    else if (f.type === 'application/pdf') lines = await pdfLines(f);
+    else lines = await ocr([await toCanvas(f)]);
+    R = lines.map(l => parseLine(l, csv)).filter(Boolean);
+    if (!R.length) OWW.toast('Nothing recognised. Try a sharper photo, a PDF or the CSV sheet.', 'amber');
+  } catch (e) { OWW.toast(e.message, 'red'); }
+  prog(''); b.disabled = false; renderReview();
+}
+function renderReview() {
+  if (!R.length) { $('review').innerHTML = ''; return; }
+  const ready = R.filter(r => r.id && r.qty !== null).length, chk = R.filter(r => r.id && r.sc < .6).length, un = R.filter(r => !r.id).length;
+  const opts = D.inv.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
+  $('review').innerHTML = `<div class="sec">Review</div><div class="note">${ready} ready · ${chk} to double-check · ${un} not matched (choose the item, or leave “skip”).</div>
+    <div class="card">${R.map((r, i) => `<div class="row" style="flex-wrap:wrap"><div class="grow"><div class="sub">“${esc(r.line)}”</div>
+      <select data-i="${i}" aria-label="Item"><option value="">— skip —</option>${opts.replace(`value="${esc(r.id)}"`, `value="${esc(r.id)}" selected`)}</select></div>
+      <span class="tag ${r.id ? (r.sc < .6 ? 'a' : 'g') : ''}">${r.id ? (r.sc < .6 ? 'check' : 'match') : 'no match'}</span>
+      <input class="qty" type="number" step="any" inputmode="decimal" data-q="${i}" value="${r.qty ?? ''}" placeholder="qty" aria-label="Quantity"></div>`).join('')}</div>
+    <div class="bar"><button class="btn g" onclick="applyImport()">Apply counts to stock</button></div>`;
+}
+$('review').onchange = e => { const i = e.target.dataset.i; if (i !== undefined) { R[i].id = e.target.value; R[i].sc = 1; } };
+$('review').oninput = e => { const i = e.target.dataset.q; if (i !== undefined) R[i].qty = e.target.value === '' ? null : parseFloat(e.target.value); };
+async function applyImport() {
+  const m = {}; R.forEach(r => { if (r.id && r.qty !== null && !isNaN(r.qty)) m[r.id] = r.qty; });
+  const items = Object.keys(m).map(k => ({ rawId: k, stock: m[k] })); if (!items.length) return OWW.toast('Nothing to apply yet', 'amber');
+  try { const n = await OWW.api('bulkInventory', { items }); OWW.toast(n + ' items updated ✓'); R = []; $('file').value = ''; renderReview(); await load(); navGo('havi'); }
+  catch (e) { OWW.toast(e.message, 'red'); }
+}
+function dlSheet() {
+  const t = 'Item;Count;Unit\n' + D.inv.map(i => `"${i.name.replace(/"/g, '""')}";;${i.unit}`).join('\n'), a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + t], { type: 'text/csv' })); a.download = 'oww-count-sheet.csv'; a.click();
+}
+</script>
+<script src="stock-x.js"></script>
+<script src="admin-x.js"></script>
+<script src="count-x.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F0F0F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OWW Kitchen System</title>
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0F0F0F; --surf: #1C1C1E; --border: #333336;
+    --txt: #F0F0F0; --txt2: #ABABAB; --amber: #E8A020;
+    --green: #3DB87A; --font: 'Inter', system-ui, sans-serif;
+  }
+  html, body {
+    height: 100%; background: var(--bg); color: var(--txt);
+    font-family: var(--font); display: flex; align-items: center;
+    justify-content: center; padding: 24px;
+  }
+  .wrap { width: 100%; max-width: 360px; }
+  .logo {
+    font-size: 13px; font-weight: 600; color: var(--amber);
+    letter-spacing: 2px; text-transform: uppercase;
+    text-align: center; margin-bottom: 6px;
+  }
+  .brand {
+    font-size: 26px; font-weight: 700; text-align: center;
+    letter-spacing: -0.5px; margin-bottom: 4px;
+  }
+  .sub {
+    font-size: 13px; color: var(--txt2); text-align: center;
+    margin-bottom: 40px;
+  }
+  .app-card {
+    display: block; text-decoration: none;
+    background: var(--surf); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    margin-bottom: 12px; transition: border-color .15s;
+  }
+  .app-card:active { border-color: var(--amber); }
+  .app-card-top {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 6px;
+  }
+  .app-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 22px;
+  }
+  .app-icon.kitchen  { background: #E8A02018; border: 1px solid #E8A02044; }
+  .app-icon.inventory{ background: #3DB87A18; border: 1px solid #3DB87A44; }
+  .app-icon.sala     { background: #5B9BD518; border: 1px solid #5B9BD544; }
+  .app-icon.owner    { background: #B58BD618; border: 1px solid #B58BD644; }
+  .app-name { font-size: 16px; font-weight: 600; }
+  .app-role { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+  .app-desc { font-size: 13px; color: var(--txt2); line-height: 1.5; }
+  .arrow {
+    margin-left: auto; color: var(--txt2);
+    font-size: 18px; flex-shrink: 0;
+  }
+  .divider {
+    height: 1px; background: var(--border); margin: 24px 0;
+  }
+  .hint {
+    font-size: 11px; color: var(--txt2); text-align: center; line-height: 1.6;
+  }
+  .hint strong { color: var(--txt); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <img src="logo.png" alt="Old Wild West" style="display:block;width:130px;height:130px;margin:0 auto 10px">
+  <div class="brand">Kitchen System</div>
+  <div class="sub">Select your app to continue</div>
+
+  <a class="app-card" href="./kitchen.html">
+    <div class="app-card-top">
+      <div class="app-icon kitchen">🍳</div>
+      <div>
+        <div class="app-name">Kitchen</div>
+        <div class="app-role">Kitchen Staff &amp; Manager</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="app-desc">
+      Log daily preparations and your shift hours, build your WhatsApp shift report, check the fridges, raise stock alerts.
+    </div>
+  </a>
+
+  <a class="app-card" href="./sala.html">
+    <div class="app-card-top">
+      <div class="app-icon sala">🍽️</div>
+      <div>
+        <div class="app-name">Sala</div>
+        <div class="app-role">Sala Staff &amp; Manager</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="app-desc">
+      See your upcoming shifts, log your hours, ask for a day off or a cover, flag drinks and supplies that are finished.
+    </div>
+  </a>
+
+  <a class="app-card" href="./inventory.html">
+    <div class="app-card-top">
+      <div class="app-icon inventory">📦</div>
+      <div>
+        <div class="app-name">Admin</div>
+        <div class="app-role">Managers, Director &amp; Owner</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="app-desc">
+      Rota, hours, stock (Havi and Verdura), deliveries, HACCP and alerts for the Kitchen and the Sala.
+    </div>
+  </a>
+
+  <a class="app-card" href="./owner.html">
+    <div class="app-card-top">
+      <div class="app-icon owner">🏢</div>
+      <div>
+        <div class="app-name">Owner</div>
+        <div class="app-role">Owner only</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="app-desc">
+      All your branches at a glance: who is working, stock, fridge checks and deliveries, and what needs your attention.
+    </div>
+  </a>
+
+  <div class="divider"></div>
+
+  <div class="hint">
+    <strong>Install as app:</strong> open your app's link in your phone browser<br>
+    iPhone → Share → Add to Home Screen<br>
+    Android → Menu → Add to Home Screen
+  </div>
+
+</div>
+</body>
+</html>
