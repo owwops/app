@@ -8,6 +8,15 @@ const OWW = {
   esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
 };
 
+// Stock is shown the way the kitchen counts it:  15 Busta in boxes of 6 -> 2B [3 Busta]   5 PZ -> 5 PZ   4.6 KG -> 4.6 KG   (same rule as stockText in Code.gs)
+OWW.UL = { PZ: 'PZ', BUSTA: 'Busta', KG: 'KG' };
+OWW.fn = n => String(Math.round((+n || 0) * 100) / 100);
+OWW.fmtQty = (n, ct, per) => {
+  n = Math.round((+n || 0) * 100) / 100; const lab = OWW.UL[ct] || 'PZ';
+  if (ct === 'KG' || !(per > 1) || n < per) return OWW.fn(n) + ' ' + lab;
+  const b = Math.floor(n / per + 1e-9), r = Math.round((n - b * per) * 100) / 100; return b + 'B' + (r ? ' [' + OWW.fn(r) + ' ' + lab + ']' : '');
+};
+
 // one request to any server (the current branch, or the central Owner script)
 OWW.call = async (url, tk, action, p = {}, sk = OWW.SK) => {
   let j;

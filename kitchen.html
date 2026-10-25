@@ -103,6 +103,11 @@ const $ = OWW.$, esc = OWW.esc, num = v => parseFloat(String(v).replace(',', '.'
 let D = { prep: [], cons: [], patterns: [], log: [], alerts: [] };
 let shift = OWW.shiftNow(), cur = null, dose = 1, loc = '', todo = {};
 const name = p => p['Item Name (IT)'];
+// how this preparation is counted: DOSE (sauces, roasted vegetables...) or PZ / BUSTA / KG (Galletto 4-6-8 PZ, Pollo in Busta...). Set in the Global sheet, PREP_ITEMS > Log As.
+const LA = p => { const x = String((p && p['Log As']) || '').trim().toUpperCase(); return x === 'PZ' || x === 'KG' ? x : x === 'BUSTA' || x === 'BAG' ? 'BUSTA' : 'DOSE'; };
+const LU = { DOSE: 'Doses', PZ: 'PZ', BUSTA: 'Busta', KG: 'KG' }, LU1 = { DOSE: 'dose', PZ: 'PZ', BUSTA: 'Busta', KG: 'KG' };
+const qStep = la => la === 'KG' ? 0.5 : 1;
+function stepQ(d) { const la = LA(cur); dose = Math.max(qStep(la), Math.round((dose + d * qStep(la)) * 100) / 100); drawQty(); }
 
 document.querySelectorAll('.nb').forEach(b => b.onclick = () => OWW.go(b.dataset.p));
 document.querySelectorAll('#shiftseg button').forEach(b => b.onclick = () => { shift = b.dataset.s; paintShift(); resetTodo(); renderAll(); });
@@ -140,7 +145,7 @@ function renderPrep() {
   const d = doneList();
   $('dn').textContent = d.length + (d.length === 1 ? ' item' : ' items');
   $('done').innerHTML = d.length ? d.map(l => `<div class="row"><span class="tag g">✓</span><span class="grow nm">${esc(l['Prep Item Name (IT)'])}</span>
-      <span class="sub">${esc(l['Doses Prepared'])} dose</span><span class="tag">${esc(l['Source Location'])}</span></div>`).join('')
+      <span class="sub">${esc(l['Doses Prepared'])} ${esc(LU1[String(l['Log Unit'] || 'DOSE').toUpperCase()] || 'dose')}</span><span class="tag">${esc(l['Source Location'])}</span></div>`).join('')
     : '<div class="empty">Nothing logged yet this shift</div>';
 }
 $('sugg').onclick = e => { const b = e.target.closest('[data-id]'); if (b) openPrep(b.dataset.id); };
@@ -153,17 +158,18 @@ function openPrep(id) {
 }
 function drawQty() {
   OWW.sheet(`<div><div class="nm" style="font-size:18px">${esc(name(cur))}</div><div class="sub">${esc(cur['Dose Base'])}</div><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${cur['Operatore (Shifts/Days)'] ? '<span class="tag a">Shelf life: ' + esc(cur['Operatore (Shifts/Days)']) + '</span>' : ''}${cur['Storage Location'] ? '<span class="tag b">' + esc(cur['Storage Location']) + '</span>' : ''}</div></div>
-    <div style="display:flex;align-items:center;gap:12px"><span class="sub" style="width:60px">Doses</span>
-      <div class="stepper"><button onclick="dose=Math.max(1,dose-1);drawQty()">−</button><b>${dose}</b><button onclick="dose++;drawQty()">+</button></div>
-      <span class="sub">× ${esc(cur['Prep Unit'])}</span></div>
+    <div style="display:flex;align-items:center;gap:12px"><span class="sub" style="width:60px">${LU[LA(cur)]}</span>
+      <div class="stepper"><button onclick="stepQ(-1)">−</button><b>${dose}</b><button onclick="stepQ(1)">+</button></div>
+      ${LA(cur) === 'DOSE' ? `<span class="sub">× ${esc(cur['Prep Unit'])}</span>` : ''}</div>
+    ${LA(cur) === 'PZ' ? `<div class="chips" style="padding:0">${[2, 4, 6, 8].map(n => `<button class="chip ${dose === n ? 'on' : ''}" onclick="dose=${n};drawQty()">${n} PZ</button>`).join('')}</div>` : ''}
     <div class="chips" style="padding:0">${['Frigo −', 'Frigo +', 'Scaffale'].map(l => `<button class="chip ${l === loc ? 'on' : ''}" onclick="loc='${l}';drawQty()">${l}</button>`).join('')}</div>
     <button class="btn p w" onclick="confirmPrep()">Log prep</button><button class="btn w" onclick="showRecipe()">📖 Recipe &amp; allergens</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
 }
 async function confirmPrep() {
   const p = cur, d = dose, l = loc; OWW.close();
-  D.log.push({ 'Shift': shift, 'Prep Item ID': p['Prep ID'], 'Prep Item Name (IT)': name(p), 'Doses Prepared': d, 'Source Location': l });
+  D.log.push({ 'Shift': shift, 'Prep Item ID': p['Prep ID'], 'Prep Item Name (IT)': name(p), 'Doses Prepared': d, 'Log Unit': LA(p), 'Source Location': l });
   renderAll();
-  try { if (await OWW.send('logPrep', { prepId: p['Prep ID'], prepName: name(p), doses: d, location: l, shift })) OWW.toast('Logged ✓'); }
+  try { const r = await OWW.send('logPrep', { prepId: p['Prep ID'], prepName: name(p), doses: d, location: l, shift }); if (r) OWW.toast(r.skipped && r.skipped.length ? 'Logged ✓ · not taken off the stock: ' + r.skipped.slice(0, 3).join(', ') + (r.skipped.length > 3 ? '…' : '') : 'Logged ✓', r.skipped && r.skipped.length ? 'amber' : undefined); }
   catch (e) { OWW.toast('Not saved: ' + e.message, 'red'); }
 }
 

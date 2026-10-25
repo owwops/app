@@ -5,6 +5,14 @@
 const SCOPE = u => u.role === 'Director' || u.role === 'Owner' ? ['KITCHEN', 'SALA'] : u.role === 'Kitchen Manager' ? ['KITCHEN'] : u.role === 'Sala Manager' ? ['SALA'] : [];
 const AREAN = { KITCHEN: 'Kitchen', SALA: 'Sala' };
 const tagOf = s => ({ CRITICAL: ['r', 'Critical'], LOW: ['a', 'Low'], OK: ['g', 'OK'], UNCOUNTED: ['', 'Not counted'] }[s]);
+const ULAB = ct => OWW.UL[ct] || 'PZ', QF = (n, i) => OWW.fmtQty(n, i.ct, i.per);
+// the quantity boxes of one row: items that come in boxes get two (boxes + loose Busta/PZ), everything else one (PZ, Busta or KG)
+function stockInputs(i) {
+  const un = i.status === 'UNCOUNTED', lab = ULAB(i.ct), nm = esc(i.name);
+  if (i.per > 1) { const b = un ? '' : Math.floor(i.cur / i.per + 1e-9), l = un ? '' : Math.round((i.cur - b * i.per) * 100) / 100;
+    return `<span data-sg="${esc(i.id)}" data-per="${i.per}" style="display:flex;gap:6px"><input class="qty" style="width:64px" type="number" step="1" min="0" inputmode="numeric" data-sb value="${b}" placeholder="B" aria-label="Boxes of ${nm}"><input class="qty" style="width:78px" type="number" step="any" min="0" inputmode="decimal" data-sl value="${l}" placeholder="${lab}" aria-label="${lab} of ${nm}"></span>`; }
+  return `<input class="qty" type="number" step="any" inputmode="decimal" min="0" data-sq="${esc(i.id)}" value="${un ? '' : i.cur}" placeholder="${lab}" aria-label="Stock of ${nm} in ${lab}">`;
+}
 function StockPage(cfg) {
   const k = cfg.key, V = cfg.supplier === 'VERDURA', root = $(cfg.root), P = { D: { inv: [], order: [], alerts: [] }, tab: 'list', filt: 'ALL', area: 'ALL', del: {}, ddt: false };
   const both = () => SCOPE(OWW.user).length > 1, inA = x => P.area === 'ALL' || x.area === P.area, id = s => k + '-' + s;
@@ -13,7 +21,7 @@ function StockPage(cfg) {
     <div id="${id('list')}"></div><div id="${id('alerts')}" class="hide"></div><div id="${id('order')}" class="hide"></div>${V ? '' : `<div id="${id('del')}" class="hide"><div id="${id('ddt')}"></div><div class="sec">Or confirm by hand</div><div class="note">No PDF? Enter the boxes actually received.</div><div class="card" id="${id('man')}"></div><div class="find"><select id="${id('add')}"></select></div><div class="bar"><button class="btn g" id="${id('conf')}">Confirm &amp; update stock</button></div></div>`}`;
   root.insertAdjacentHTML('afterbegin', '');
   const listHtml = `<div class="bar">${V ? `<button class="btn p" data-a="add">+ Add item</button><button class="btn" data-a="cat">Add from catalog</button>` : `<button class="btn" onclick="navGo('imp')">Import count from photo / PDF / CSV</button><button class="btn p" onclick="navGo('count')">Count by shelf walk</button>`}</div>
-    <div class="find"><input id="${id('q')}" name="oww-find-${k}" placeholder="Search stock…" autocomplete="off" data-lpignore="true" data-1p-ignore></div><div class="chips" id="${id('flt')}"></div><div class="note" id="${id('hint')}"></div><div class="card" id="${id('rows')}"></div>`;
+    <div class="find"><input id="${id('q')}" name="oww-find-${k}" placeholder="Search stock…" autocomplete="off" data-lpignore="true" data-1p-ignore></div><div class="chips" id="${id('flt')}"></div><div class="note" id="${id('hint')}"></div><div class="note" id="${id('nw')}" style="color:var(--amber)"></div><div class="card" id="${id('rows')}"></div>`;
   $(id('list')).innerHTML = listHtml;
   P.load = async function () {
     try { P.D = await OWW.api('invData', { supplier: cfg.supplier }); } catch (e) { OWW.toast(e.message, 'red'); return; }
@@ -33,10 +41,12 @@ function StockPage(cfg) {
   function drawList(inv) {
     $(id('flt')).innerHTML = [['ALL', 'All'], ['CRITICAL', 'Critical'], ['LOW', 'Low'], ['UNCOUNTED', 'Not counted']].map(f => `<button class="chip ${P.filt === f[0] ? 'on' : ''}" data-f="${f[0]}">${f[1]}</button>`).join('');
     const q = $(id('q')).value.trim().toLowerCase(), l = inv.filter(i => (P.filt === 'ALL' || i.status === P.filt) && (!q || i.name.toLowerCase().includes(q)));
+    const nw = (P.D.needWeight || []).filter(x => x.sup === cfg.supplier && inA(x));
+    $(id('nw')).innerHTML = nw.length ? '⚠ ' + nw.length + ' item(s) used in recipes have no weight yet, so recipes do not take them off the stock: ' + nw.slice(0, 8).map(x => esc(x.name)).join(', ') + (nw.length > 8 ? '…' : '') + '. Fill “Weight per Unit (g)” in the Global sheet (RAW_INGREDIENTS).' : '';
     $(id('hint')).textContent = !inv.length ? (V ? 'No items yet. Tap “+ Add item”, choose KG or PZ, then type the quantity next to it.' : '') : inv.some(i => i.status === 'UNCOUNTED') ? 'Type the quantity you have now next to each item. Tap a name to set its minimum.' : 'Tap a name to set its minimum and critical level.';
     $(id('rows')).innerHTML = l.length ? l.map(i => { const t = tagOf(i.status);
-      return `<div class="row"><div class="grow" data-info="${esc(i.id)}" style="cursor:pointer"><div class="nm">${esc(i.name)}</div><div class="sub">${esc(i.storage)} · min ${i.min} · ${esc(i.unit)} ${both() ? `<span class="tag ${i.area === 'SALA' ? 'b' : 'a'}">${AREAN[i.area]}</span>` : ''}</div></div>
-        <span class="tag ${t[0]}">${t[1]}</span><input class="qty" type="number" step="any" inputmode="decimal" min="0" data-sq="${esc(i.id)}" value="${i.status === 'UNCOUNTED' ? '' : i.cur}" placeholder="0" aria-label="Stock of ${esc(i.name)}">${V ? `<button class="sm" data-rm="${esc(i.id)}" aria-label="Remove ${esc(i.name)}">✕</button>` : ''}</div>`; }).join('')
+      return `<div class="row" style="flex-wrap:wrap"><div class="grow" data-info="${esc(i.id)}" style="cursor:pointer;flex:1 1 130px"><div class="nm">${esc(i.name)}</div><div class="sub">${esc(i.storage)} · min ${esc(QF(i.min, i))}${i.per > 1 ? ' · 1 box = ' + i.per : ''} ${both() ? `<span class="tag ${i.area === 'SALA' ? 'b' : 'a'}">${AREAN[i.area]}</span>` : ''}</div></div>
+        <div style="display:grid;gap:3px;justify-items:end;min-width:84px"><b style="white-space:nowrap">${i.status === 'UNCOUNTED' ? '—' : esc(QF(i.cur, i))}</b><span class="tag ${t[0]}">${t[1]}</span></div>${stockInputs(i)}${V ? `<button class="sm" data-rm="${esc(i.id)}" aria-label="Remove ${esc(i.name)}">✕</button>` : ''}</div>`; }).join('')
       : '<div class="empty">No items match</div>';
   }
   function drawAlerts() {
@@ -50,14 +60,14 @@ function StockPage(cfg) {
   }
   function drawOrder(ord) {
     $(id('order')).innerHTML = `<div class="note">${V ? 'Items at or below their minimum: how much to buy.' : 'Items at or below minimum stock, sized from weekly usage.'}</div><div class="card">` + (ord.length
-      ? `<div class="ch"><span>${V ? 'Items to buy' : 'Items to order'}</span><span class="tag b">${ord.reduce((s, i) => s + i.boxes, 0)} ${V ? 'units' : 'boxes'}</span></div>` + ord.map(i => `<div class="row"><div class="grow"><div class="nm">${esc(i.name)} ${both() ? `<span class="tag ${i.area === 'SALA' ? 'b' : 'a'}">${AREAN[i.area]}</span>` : ''}</div><div class="sub">${i.cur} ${esc(i.unit)} left${V ? '' : ' · 1 box = ' + i.box}</div></div><b style="color:var(--amber);font-size:18px">${i.boxes} ${V ? esc(i.unit) : 'box'}</b></div>`).join('')
+      ? `<div class="ch"><span>${V ? 'Items to buy' : 'Items to order'}</span><span class="tag b">${ord.reduce((s, i) => s + i.boxes, 0)} ${V ? 'units' : 'boxes'}</span></div>` + ord.map(i => `<div class="row"><div class="grow"><div class="nm">${esc(i.name)} ${both() ? `<span class="tag ${i.area === 'SALA' ? 'b' : 'a'}">${AREAN[i.area]}</span>` : ''}</div><div class="sub">${esc(i.show || i.cur)} left${i.per > 1 ? ' · 1 box = ' + i.per + ' ' + ULAB(i.ct) : ''}</div></div><b style="color:var(--amber);font-size:18px">${i.boxes} ${i.per > 1 ? 'box' : ULAB(i.ct)}</b></div>`).join('')
       : `<div class="empty">Nothing to ${V ? 'buy' : 'order'}. Items at or below their minimum appear here (set the minimum by tapping an item).</div>`) + `</div><div class="bar"><button class="btn p" data-a="wa">Send ${V ? 'list' : 'order'} via WhatsApp</button></div>`;
   }
   // ── manual receipt (Havi only) ──
-  function resetMan() { P.del = {}; P.D.order.forEach(i => P.del[i.rawId] = { name: i.name, ordered: i.boxes, got: i.boxes, box: i.box, unit: i.unit }); }
+  function resetMan() { P.del = {}; P.D.order.forEach(i => P.del[i.rawId] = { name: i.name, ordered: i.boxes, got: i.boxes, box: i.box, per: i.per, unit: ULAB(i.ct) }); }
   function drawMan() {
     if (V) return; const ks = Object.keys(P.del);
-    $(id('man')).innerHTML = ks.length ? ks.map(x => `<div class="row"><div class="grow"><div class="nm">${esc(P.del[x].name)}</div><div class="sub">ordered ${P.del[x].ordered} box · 1 box = ${P.del[x].box} ${esc(P.del[x].unit)}</div></div><input class="qty" type="number" min="0" step="1" inputmode="numeric" data-m="${esc(x)}" value="${P.del[x].got}" aria-label="Boxes received"></div>`).join('') : '<div class="empty">No pending order. Add received items below.</div>';
+    $(id('man')).innerHTML = ks.length ? ks.map(x => `<div class="row"><div class="grow"><div class="nm">${esc(P.del[x].name)}</div><div class="sub">ordered ${P.del[x].ordered} ${P.del[x].per > 1 ? 'box · 1 box = ' + P.del[x].per + ' ' + esc(P.del[x].unit) : esc(P.del[x].unit)}</div></div><input class="qty" type="number" min="0" step="1" inputmode="numeric" data-m="${esc(x)}" value="${P.del[x].got}" aria-label="Received"></div>`).join('') : '<div class="empty">No pending order. Add received items below.</div>';
     $(id('add')).innerHTML = '<option value="">+ Add another received item…</option>' + P.D.inv.filter(i => !P.del[i.id]).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
   }
   // ── events ──
@@ -74,14 +84,19 @@ function StockPage(cfg) {
     if (inf) return limitsForm(inf.dataset.info);
     if (a) { const w = a.dataset.a; if (w === 'add') return addForm(); if (w === 'cat') return catalog(); if (w === 'wa') {
       const l = P.D.order.filter(inA); if (!l.length) return OWW.toast('Nothing to ' + (V ? 'buy' : 'order'), 'amber');
-      window.open('https://wa.me/?text=' + encodeURIComponent((V ? '*Verdura*\n\n' : '*Ordine*\n\n') + l.map((i, n) => `${n + 1}. ${i.name} — ${i.boxes} ${V ? i.unit : 'box'}`).join('\n')), '_blank'); } }
+      window.open('https://wa.me/?text=' + encodeURIComponent((V ? '*Verdura*\n\n' : '*Ordine*\n\n') + l.map((i, n) => `${n + 1}. ${i.name} — ${i.boxes} ${i.per > 1 ? 'box' : ULAB(i.ct)}`).join('\n')), '_blank'); } }
   });
   root.addEventListener('input', e => { if (e.target.id === id('q')) drawList(P.D.inv.filter(inA)); });
   root.addEventListener('change', async e => {
     const el = e.target; if (el.closest('#' + id('ddt'))) return;
-    if (el.dataset.sq !== undefined) { if (el.value === '') return; try { const r = await OWW.api('updateInventory', { rawId: el.dataset.sq, stock: el.value }); OWW.toast('Saved ✓' + (r.refilled ? ' · ' + r.refilled + ' alert(s) refilled' : '')); await loadAll(); } catch (x) { OWW.toast(x.message, 'red'); } }
+    if (el.dataset.sb !== undefined || el.dataset.sl !== undefined) {
+      const g = el.closest('[data-sg]'), per = +g.dataset.per, bx = g.querySelector('[data-sb]').value, lo = g.querySelector('[data-sl]').value; if (bx === '' && lo === '') return;
+      const tot = Math.round(((parseFloat(bx) || 0) * per + (parseFloat(lo) || 0)) * 100) / 100;
+      try { const r = await OWW.api('updateInventory', { rawId: g.dataset.sg, stock: tot }); OWW.toast('Saved ✓' + (r.refilled ? ' · ' + r.refilled + ' alert(s) refilled' : '')); await loadAll(); } catch (x) { OWW.toast(x.message, 'red'); }
+    }
+    else if (el.dataset.sq !== undefined) { if (el.value === '') return; try { const r = await OWW.api('updateInventory', { rawId: el.dataset.sq, stock: el.value }); OWW.toast('Saved ✓' + (r.refilled ? ' · ' + r.refilled + ' alert(s) refilled' : '')); await loadAll(); } catch (x) { OWW.toast(x.message, 'red'); } }
     else if (el.dataset.m !== undefined) P.del[el.dataset.m].got = el.value;
-    else if (el.id === id('add')) { const i = P.D.inv.find(x => x.id === el.value); if (i) { P.del[i.id] = { name: i.name, ordered: 0, got: 1, box: i.box, unit: i.unit }; drawMan(); } }
+    else if (el.id === id('add')) { const i = P.D.inv.find(x => x.id === el.value); if (i) { P.del[i.id] = { name: i.name, ordered: 0, got: 1, box: i.box, per: i.per, unit: ULAB(i.ct) }; drawMan(); } }
   });
   if (!V) $(id('conf')).onclick = async () => {
     const items = Object.keys(P.del).map(x => ({ rawId: x, name: P.del[x].name, boxesOrdered: P.del[x].ordered, boxesReceived: P.del[x].got })).filter(i => +i.boxesReceived > 0);
@@ -91,8 +106,8 @@ function StockPage(cfg) {
   // ── item limits ──
   function limitsForm(iid) {
     const i = P.D.inv.find(x => x.id === iid); if (!i) return;
-    OWW.sheet(`<div><div class="nm" style="font-size:18px">${esc(i.name)}</div><div class="sub">${esc(i.storage)} · ${esc(i.unit)}${both() ? ' · ' + AREAN[i.area] : ''}</div></div>
-      <div class="two"><label class="fld"><small>Minimum (order below this)</small><input type="number" step="any" min="0" id="lm" value="${i.min}"></label><label class="fld"><small>Critical (very low)</small><input type="number" step="any" min="0" id="lc" value="${i.crit}"></label></div>
+    OWW.sheet(`<div><div class="nm" style="font-size:18px">${esc(i.name)}</div><div class="sub">${esc(i.storage)} · counted in ${ULAB(i.ct)}${i.per > 1 ? ' · 1 box = ' + i.per + ' ' + ULAB(i.ct) : ''}${both() ? ' · ' + AREAN[i.area] : ''}</div></div>
+      <div class="two"><label class="fld"><small>Minimum in ${ULAB(i.ct)} (order below this)</small><input type="number" step="any" min="0" id="lm" value="${i.min}"></label><label class="fld"><small>Critical in ${ULAB(i.ct)} (very low)</small><input type="number" step="any" min="0" id="lc" value="${i.crit}"></label></div>
       <div class="err" id="ler"></div><button class="btn p w" id="lsave">Save</button><button class="btn w" onclick="OWW.close()">Cancel</button>`);
     $('lsave').onclick = async () => { try { await OWW.api('itemLimits', { rawId: iid, min: $('lm').value, crit: $('lc').value }); OWW.close(); OWW.toast('Saved ✓'); await loadAll(); } catch (er) { $('ler').textContent = er.message; } };
   }

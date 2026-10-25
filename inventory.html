@@ -360,7 +360,7 @@ async function applyImport() {
   catch (e) { OWW.toast(e.message, 'red'); }
 }
 function dlSheet() {
-  const t = 'Item;Count;Unit\n' + D.inv.map(i => `"${i.name.replace(/"/g, '""')}";;${i.unit}`).join('\n'), a = document.createElement('a');
+  const t = 'Item;Count;Unit\n' + D.inv.map(i => `"${i.name.replace(/"/g, '""')}";;${(OWW.UL[i.ct] || i.unit)}`).join('\n'), a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\ufeff' + t], { type: 'text/csv' })); a.download = 'oww-count-sheet.csv'; a.click();
 }
 </script>
