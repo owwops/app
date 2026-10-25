@@ -42,30 +42,48 @@ function cnChips() {
   $('cn-prog').textContent = 'Counted ' + d + ' of ' + t + ' items · started by ' + CN.session.by;
   $('cn-chips').innerHTML = CN.shelves.map((s, i) => { const c = shelfDone(s); return `<button class="chip ${i === CI ? 'on' : ''}" data-s="${i}">${c === s.items.length && c ? '✓ ' : ''}${esc(s.name)} ${c}/${s.items.length}</button>`; }).join('');
 }
+const cnLab = ct => OWW.UL[ct] || 'PZ';
+function cnInputs(i) { // items in boxes: Boxes + loose Busta/PZ.  Everything else: one box (PZ, Busta or KG). The app adds them up.
+  const v = CV[i.id], has = v !== undefined, lab = cnLab(i.ct), nm = esc(i.name);
+  if (i.per > 1) { const b = has ? Math.floor(v / i.per + 1e-9) : '', l = has ? Math.round((v - b * i.per) * 100) / 100 : '';
+    return `<span data-cg="${esc(i.id)}" data-per="${i.per}" style="display:flex;gap:6px"><input class="qty" style="width:60px" type="text" inputmode="numeric" enterkeyhint="next" data-cb value="${b === '' ? '' : esc(fmtN(b))}" placeholder="B" aria-label="Boxes counted of ${nm}"><input class="qty" style="width:74px" type="text" inputmode="decimal" enterkeyhint="next" data-cl value="${l === '' ? '' : esc(fmtN(l))}" placeholder="${lab}" aria-label="${lab} counted of ${nm}"></span>`; }
+  return `<input class="qty" type="text" inputmode="decimal" enterkeyhint="next" data-c="${esc(i.id)}" value="${has ? esc(fmtN(v)) : ''}" placeholder="${lab}" aria-label="Counted quantity of ${nm} in ${lab}">`;
+}
 function cnList() {
   const s = CN.shelves[CI], last = CI === CN.shelves.length - 1;
-  $('cn-list').innerHTML = s.items.map(i => `<div class="row" data-r="${esc(i.id)}"><div class="grow"><div class="nm">${esc(i.name)}</div><div class="sub">${i.counted ? 'system: ' + esc(fmtN(i.cur)) : 'never counted'} · ${esc(i.unit)}</div></div>
-    ${i.counted ? `<button class="sm" data-same="${esc(i.id)}" aria-label="Same as system" title="Same as system">=</button>` : ''}
-    <input class="qty" type="text" inputmode="decimal" enterkeyhint="next" data-c="${esc(i.id)}" value="${CV[i.id] !== undefined ? esc(fmtN(CV[i.id])) : ''}" placeholder="?" aria-label="Counted quantity of ${esc(i.name)}"></div>`).join('') || '<div class="empty">No items on this shelf</div>';
+  $('cn-list').innerHTML = s.items.map(i => `<div class="row" data-r="${esc(i.id)}" style="flex-wrap:wrap"><div class="grow" style="flex:1 1 120px"><div class="nm">${esc(i.name)}</div><div class="sub">${i.counted ? 'system: ' + esc(OWW.fmtQty(i.cur, i.ct, i.per)) : 'never counted'}${i.per > 1 ? ' · 1 box = ' + i.per : ''}</div></div>
+    ${i.counted ? `<button class="sm" data-same="${esc(i.id)}" aria-label="Same as system" title="Same as system">=</button>` : ''}${cnInputs(i)}</div>`).join('') || '<div class="empty">No items on this shelf</div>';
   $('cn-foot').innerHTML = `<button class="btn" ${CI === 0 ? 'disabled' : ''} onclick="cnGo(${CI - 1})">‹ Previous shelf</button>` + (last ? '<button class="btn g" onclick="cnReview()">Review & finish</button>' : `<button class="btn p" onclick="cnGo(${CI + 1})">Next shelf ›</button>`);
   s.items.forEach(i => cnFlag(i.id));
 }
 function cnGo(i) { cnSync(); CI = Math.max(0, Math.min(CN.shelves.length - 1, i)); cnList(); cnChips(); $('main').scrollTop = 0; }
 const big = (c, cur, was) => was && ((c === 0 && cur > 0) || (Math.abs(c - cur) >= 3 && Math.abs(c - cur) / Math.max(cur, 1) >= .5));
 function cnFlag(id) { // amber box when the count is very different from the system value (likely a typo)
-  const it = CN.shelves[CI].items.find(x => x.id === id), inp = document.querySelector(`[data-c="${CSS.escape(id)}"]`); if (!it || !inp) return;
-  inp.style.borderColor = CV[id] !== undefined && big(CV[id], it.cur, it.counted) ? 'var(--amber)' : '';
+  const it = CN.shelves[CI].items.find(x => x.id === id), inp = document.querySelectorAll(`[data-c="${CSS.escape(id)}"],[data-cg="${CSS.escape(id)}"] input`); if (!it || !inp.length) return;
+  inp.forEach(x => x.style.borderColor = CV[id] !== undefined && big(CV[id], it.cur, it.counted) ? 'var(--amber)' : '');
+}
+function cnFill(it) { // the '=' button: copy the system value into the box(es)
+  const v = it.cur;
+  if (it.per > 1) { const g = document.querySelector(`[data-cg="${CSS.escape(it.id)}"]`), b = Math.floor(v / it.per + 1e-9); g.querySelector('[data-cb]').value = b; g.querySelector('[data-cl]').value = fmtN(Math.round((v - b * it.per) * 100) / 100); }
+  else document.querySelector(`[data-c="${CSS.escape(it.id)}"]`).value = fmtN(v);
+  cnSet(it.id, v);
 }
 function cnSet(id, raw) {
   const t = String(raw).trim().replace(',', '.');
   if (t === '') delete CV[id]; else { const q = parseFloat(t); if (isNaN(q) || q < 0) return; CV[id] = q; }
   CD.add(id); cnSave(); cnChips(); cnFlag(id);
 }
-$('cn-body').addEventListener('input', e => { if (e.target.dataset.c) cnSet(e.target.dataset.c, e.target.value); });
-$('cn-body').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset.c) { e.preventDefault(); const l = [...document.querySelectorAll('#cn-list [data-c]')], n = l[l.indexOf(e.target) + 1]; (n || e.target).focus(); } });
+$('cn-body').addEventListener('input', e => {
+  const t = e.target; if (t.dataset.c) return cnSet(t.dataset.c, t.value);
+  const g = t.closest('[data-cg]'); if (!g) return; const b = g.querySelector('[data-cb]').value.trim(), l = g.querySelector('[data-cl]').value.trim();
+  if (b === '' && l === '') return cnSet(g.dataset.cg, '');
+  const bn = parseFloat(b.replace(',', '.')) || 0, ln = parseFloat(l.replace(',', '.')) || 0; if (bn < 0 || ln < 0) return;
+  cnSet(g.dataset.cg, Math.round((bn * +g.dataset.per + ln) * 100) / 100);
+});
+$('cn-body').addEventListener('keydown', e => { const t = e.target; if (e.key === 'Enter' && (t.dataset.c || t.dataset.cb !== undefined || t.dataset.cl !== undefined)) { e.preventDefault(); const l = [...document.querySelectorAll('#cn-list [data-c],#cn-list [data-cb],#cn-list [data-cl]')], n = l[l.indexOf(t) + 1]; (n || t).focus(); } });
 $('cn-body').addEventListener('click', e => {
   const sm = e.target.closest('[data-same]'), ch = e.target.closest('[data-s]');
-  if (sm) { const it = CN.shelves[CI].items.find(x => x.id === sm.dataset.same), inp = document.querySelector(`[data-c="${CSS.escape(it.id)}"]`); inp.value = fmtN(it.cur); cnSet(it.id, it.cur); }
+  if (sm) cnFill(CN.shelves[CI].items.find(x => x.id === sm.dataset.same));
   else if (ch) cnGo(+ch.dataset.s);
 });
 
@@ -74,11 +92,11 @@ async function cnReview() {
   await cnSync(); if (CD.size) return OWW.toast('Could not save your progress yet. Check the connection and try again.', 'amber');
   const t = CN.shelves.reduce((a, s) => a + s.items.length, 0), d = Object.keys(CV).length, changes = [], left = [];
   CN.shelves.forEach((s, i) => { const miss = s.items.length - shelfDone(s); if (miss) left.push({ i, name: s.name, n: miss });
-    s.items.forEach(it => { const c = CV[it.id]; if (c !== undefined && big(c, it.cur, it.counted)) changes.push({ name: it.name, was: it.cur, now: c, unit: it.unit }); }); });
+    s.items.forEach(it => { const c = CV[it.id]; if (c !== undefined && big(c, it.cur, it.counted)) changes.push({ name: it.name, was: it.cur, now: c, ct: it.ct, per: it.per }); }); });
   changes.sort((a, b) => Math.abs(b.now - b.was) - Math.abs(a.now - a.was));
   $('cn-body').innerHTML = `<div class="stats"><div class="stat"><small>Counted</small><b>${d}</b></div><div class="stat"><small>Not counted</small><b>${t - d}</b></div><div class="stat"><small>Big changes</small><b style="color:${changes.length ? 'var(--amber)' : 'inherit'}">${changes.length}</b></div></div>
     <div class="note">Items you did not count keep their current stock. Nothing changes until you press Apply.</div>` +
-    (changes.length ? `<div class="sec">Check these big changes</div><div class="card">${changes.slice(0, 15).map(c => `<div class="row"><div class="grow"><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.unit)}</div></div><span class="tag a">${esc(fmtN(c.was))} → ${esc(fmtN(c.now))}</span></div>`).join('')}</div>` : '') +
+    (changes.length ? `<div class="sec">Check these big changes</div><div class="card">${changes.slice(0, 15).map(c => `<div class="row"><div class="grow"><div class="nm">${esc(c.name)}</div><div class="sub">counted in ${esc(cnLab(c.ct))}</div></div><span class="tag a">${esc(OWW.fmtQty(c.was, c.ct, c.per))} → ${esc(OWW.fmtQty(c.now, c.ct, c.per))}</span></div>`).join('')}</div>` : '') +
     (left.length ? `<div class="sec">Shelves with items not counted</div><div class="card">${left.map(l => `<div class="row"><span class="grow">${esc(l.name)}</span><span class="tag">${l.n} left</span><button class="sm a" onclick="CI=${l.i};cnRender()">Go</button></div>`).join('')}</div>` : '') +
     `<div class="bar"><button class="btn" onclick="cnRender()">‹ Back to counting</button><button class="btn g" onclick="cnApply()">Apply to stock</button></div>
      <div class="bar"><button class="btn w" style="color:var(--red)" onclick="cnDiscard()">Discard this count</button></div>`;
